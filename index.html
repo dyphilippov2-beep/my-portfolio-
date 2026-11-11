@@ -212,10 +212,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 <div class="ocr-overlay" id="ocrOverlay">
     <div class="spinner"></div>
-    <div class="ocr-text" id="ocrText">Загрузка движка распознавания...</div>
+    <div class="ocr-text" id="ocrText">Загрузка...</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<!-- Подключаем OCR асинхронно, чтобы не тормозить запуск -->
+<script async src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 const ACCOUNTS = {
     'acc1': { name: 'СберИнвест', balance: '687к', owner: 'Дмитрий' },
@@ -240,10 +241,16 @@ const TICKER_MAP = {
 
 const GOLD_WEIGHT = 7.78;
 let holdings = [];
-try { holdings = JSON.parse(localStorage.getItem('portfolio_v5')) || []; } catch { holdings = []; }
+try { 
+    let saved = JSON.parse(localStorage.getItem('portfolio_v5'));
+    if (Array.isArray(saved)) holdings = saved;
+} catch { holdings = []; }
 
 let appSettings = { protected: false, hasPin: false, hasFaceId: false };
-try { appSettings = JSON.parse(localStorage.getItem('portfolio_auth')) || appSettings; } catch {}
+try { 
+    let savedAuth = JSON.parse(localStorage.getItem('portfolio_auth'));
+    if (savedAuth) appSettings = savedAuth;
+} catch {}
 
 let currentFilter = 'Все';
 let expandedGroups = new Set();
@@ -297,7 +304,7 @@ function setupPin() {
 }
 
 async function registerFaceId() {
-    if (!window.PublicKeyCredential) return alert('Устройство не поддерживает Face ID / WebAuthn.');
+    if (!window.PublicKeyCredential) return alert('Устройство не поддерживает Face ID.');
     try {
         const challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
         const userId = new Uint8Array(16); crypto.getRandomValues(userId);
@@ -333,7 +340,6 @@ async function tryFaceId() {
         });
         if (assertion) unlockApp();
     } catch (e) { 
-        console.log('Face ID cancelled', e); 
         if (appSettings.hasPin) showPin();
     }
 }
@@ -341,6 +347,7 @@ async function tryFaceId() {
 let pinInputBuffer = '';
 function pinInput(val) {
     if (val === 'del') pinInputBuffer = pinInputBuffer.slice(0, -1);
+    else if (val === 'reset') pinInputBuffer = '';
     else if (pinInputBuffer.length < 4) pinInputBuffer += val;
     
     document.querySelectorAll('#pinDots .dot').forEach((dot, i) => {
@@ -349,7 +356,7 @@ function pinInput(val) {
     
     if (pinInputBuffer.length === 4) {
         if (pinInputBuffer === localStorage.getItem('portfolio_pin')) unlockApp();
-        else { alert('Неверный PIN'); pinInputBuffer = ''; pinInput('reset'); }
+        else { alert('Неверный PIN'); pinInput('reset'); }
     }
 }
 
@@ -361,27 +368,31 @@ function showPin() {
 function unlockApp() {
     document.getElementById('lockScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-    pinInputBuffer = '';
+    pinInput('reset');
     document.getElementById('unlockMethods').style.display = 'flex';
     document.getElementById('pinPad').style.display = 'none';
 }
 
 function checkLock() {
-    if (appSettings.protected) {
-        document.getElementById('lockScreen').style.display = 'flex';
-        document.getElementById('mainApp').style.display = 'none';
-        if (appSettings.hasFaceId) {
-            document.getElementById('btnFaceIdUnlock').style.display = 'flex';
-            setTimeout(() => tryFaceId(), 500); // Автозапуск Face ID
+    try {
+        if (appSettings.protected) {
+            document.getElementById('lockScreen').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+            if (appSettings.hasFaceId) {
+                document.getElementById('btnFaceIdUnlock').style.display = 'flex';
+                setTimeout(() => tryFaceId(), 500);
+            }
+            if (appSettings.hasPin) {
+                document.getElementById('btnPinUnlock').style.display = 'flex';
+            }
+            document.getElementById('toggleProtection').checked = true;
+        } else {
+            document.getElementById('lockScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('toggleProtection').checked = false;
         }
-        if (appSettings.hasPin) {
-            document.getElementById('btnPinUnlock').style.display = 'flex';
-        }
-        document.getElementById('toggleProtection').checked = true;
-    } else {
-        document.getElementById('lockScreen').style.display = 'none';
+    } catch(e) {
         document.getElementById('mainApp').style.display = 'block';
-        document.getElementById('toggleProtection').checked = false;
     }
 }
 
@@ -395,77 +406,82 @@ function renderFilters() {
 function setFilter(owner) { currentFilter = owner; render(); }
 
 function render() {
-    renderFilters();
-    const filtered = holdings.filter(h => currentFilter === 'Все' || ACCOUNTS[h.accId]?.owner === currentFilter);
-    const grouped = {};
-    filtered.forEach(h => {
-        if (!grouped[h.name]) grouped[h.name] = { name: h.name, type: h.type, totalQty: 0, totalCost: 0, totalVal: 0, accounts: [] };
-        const g = grouped[h.name];
-        g.totalQty += h.qty; g.totalCost += h.qty * (h.avg || 0); g.totalVal += h.qty * (h.cur || 0); g.accounts.push(h);
-    });
+    try {
+        renderFilters();
+        const filtered = holdings.filter(h => currentFilter === 'Все' || ACCOUNTS[h.accId]?.owner === currentFilter);
+        const grouped = {};
+        filtered.forEach(h => {
+            if (!grouped[h.name]) grouped[h.name] = { name: h.name, type: h.type, totalQty: 0, totalCost: 0, totalVal: 0, accounts: [] };
+            const g = grouped[h.name];
+            g.totalQty += h.qty; g.totalCost += h.qty * (h.avg || 0); g.totalVal += h.qty * (h.cur || 0); g.accounts.push(h);
+        });
 
-    const groups = Object.values(grouped).sort((a, b) => b.totalVal - a.totalVal);
-    let tv = 0, ti = 0;
-    groups.forEach(g => { tv += g.totalVal; ti += g.totalCost; });
-    const pr = tv - ti;
-    const pc = ti > 0 ? (pr / ti) * 100 : 0;
+        const groups = Object.values(grouped).sort((a, b) => b.totalVal - a.totalVal);
+        let tv = 0, ti = 0;
+        groups.forEach(g => { tv += g.totalVal; ti += g.totalCost; });
+        const pr = tv - ti;
+        const pc = ti > 0 ? (pr / ti) * 100 : 0;
 
-    document.getElementById('totalBalance').textContent = fmt(tv);
-    const pEl = document.getElementById('totalProfit');
-    pEl.textContent = (pr >= 0 ? '+' : '') + fmt(pr);
-    pEl.className = pr >= 0 ? 'green' : 'red';
-    const pctEl = document.getElementById('totalPct');
-    pctEl.textContent = `(${(pc >= 0 ? '+' : '') + pc.toFixed(2)}%)`;
-    pctEl.className = pc >= 0 ? 'green' : 'red';
+        document.getElementById('totalBalance').textContent = fmt(tv);
+        const pEl = document.getElementById('totalProfit');
+        pEl.textContent = (pr >= 0 ? '+' : '') + fmt(pr);
+        pEl.className = pr >= 0 ? 'green' : 'red';
+        const pctEl = document.getElementById('totalPct');
+        pctEl.textContent = `(${(pc >= 0 ? '+' : '') + pc.toFixed(2)}%)`;
+        pctEl.className = pc >= 0 ? 'green' : 'red';
 
-    if (!groups.length) {
-        document.getElementById('appContent').innerHTML = '<div class="empty-state">Нет активов<br><br>Добавьте вручную или загрузите скриншот</div>';
-        return;
-    }
+        if (!groups.length) {
+            document.getElementById('appContent').innerHTML = '<div class="empty-state">Нет активов<br><br>Добавьте вручную или загрузите скриншот</div>';
+            return;
+        }
 
-    document.getElementById('appContent').innerHTML = groups.map(g => {
-        const cfg = CONFIG[g.type] || CONFIG.stock;
-        const profit = g.totalVal - g.totalCost;
-        const pct = g.totalCost > 0 ? (profit / g.totalCost) * 100 : 0;
-        const isExpanded = expandedGroups.has(g.name) ? 'active' : '';
+        document.getElementById('appContent').innerHTML = groups.map(g => {
+            const cfg = CONFIG[g.type] || CONFIG.stock;
+            const profit = g.totalVal - g.totalCost;
+            const pct = g.totalCost > 0 ? (profit / g.totalCost) * 100 : 0;
+            const isExpanded = expandedGroups.has(g.name) ? 'active' : '';
 
-        const accRows = g.accounts.map(h => {
-            const acc = ACCOUNTS[h.accId] || { name: 'Неизвестный счет', owner: '-' };
-            return `
-            <div class="acc-row" onclick="editHolding('${h.id}')">
-                <div class="acc-info">
-                    <span class="acc-name">${acc.name} (${acc.balance})</span>
-                    <span class="acc-owner">${acc.owner}</span>
-                </div>
-                <div class="acc-values">
-                    <div>
-                        <div class="acc-qty">${h.qty} ${g.type === 'cash' ? '₽' : 'шт.'}</div>
-                        <div class="acc-sum">${fmt(h.qty * (h.cur || 0))}</div>
+            const accRows = g.accounts.map(h => {
+                const acc = ACCOUNTS[h.accId] || { name: 'Счет', owner: '-' };
+                return `
+                <div class="acc-row" onclick="editHolding('${h.id}')">
+                    <div class="acc-info">
+                        <span class="acc-name">${acc.name} (${acc.balance})</span>
+                        <span class="acc-owner">${acc.owner}</span>
                     </div>
-                    <div class="edit-icon">✎</div>
+                    <div class="acc-values">
+                        <div>
+                            <div class="acc-qty">${h.qty} ${g.type === 'cash' ? '₽' : 'шт.'}</div>
+                            <div class="acc-sum">${fmt(h.qty * (h.cur || 0))}</div>
+                        </div>
+                        <div class="edit-icon">✎</div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            let details = `${g.totalQty} ${g.type === 'cash' ? '₽' : 'шт.'}`;
+            if (g.type === 'gold') details += ` • ${(g.totalQty * GOLD_WEIGHT).toFixed(2)} г`;
+
+            return `
+            <div class="group-wrap">
+                <div class="group-header" onclick="toggleGroup('${esc(g.name)}')">
+                    <div class="icon-box" style="background:${cfg.color}22;color:${cfg.color}">${cfg.icon}</div>
+                    <div class="info">
+                        <div class="name">${esc(g.name)}</div>
+                        <div class="details">${details}</div>
+                    </div>
+                    <div class="values">
+                        <div class="val">${fmt(g.totalVal)}</div>
+                        <div class="change ${profit >= 0 ? 'green' : 'red'}">${profit >= 0 ? '+' : ''}${fmt(profit)} (${pct.toFixed(1)}%)</div>
+                    </div>
                 </div>
+                <div class="group-body ${isExpanded}">${accRows}</div>
             </div>`;
         }).join('');
-
-        let details = `${g.totalQty} ${g.type === 'cash' ? '₽' : 'шт.'}`;
-        if (g.type === 'gold') details += ` • ${(g.totalQty * GOLD_WEIGHT).toFixed(2)} г`;
-
-        return `
-        <div class="group-wrap">
-            <div class="group-header" onclick="toggleGroup('${esc(g.name)}')">
-                <div class="icon-box" style="background:${cfg.color}22;color:${cfg.color}">${cfg.icon}</div>
-                <div class="info">
-                    <div class="name">${esc(g.name)}</div>
-                    <div class="details">${details}</div>
-                </div>
-                <div class="values">
-                    <div class="val">${fmt(g.totalVal)}</div>
-                    <div class="change ${profit >= 0 ? 'green' : 'red'}">${profit >= 0 ? '+' : ''}${fmt(profit)} (${pct.toFixed(1)}%)</div>
-                </div>
-            </div>
-            <div class="group-body ${isExpanded}">${accRows}</div>
-        </div>`;
-    }).join('');
+    } catch (e) {
+        console.error("Ошибка рендера:", e);
+        document.getElementById('appContent').innerHTML = '<div class="empty-state">Ошибка загрузки данных. Попробуйте обновить страницу.</div>';
+    }
 }
 
 function toggleGroup(name) {
@@ -505,7 +521,7 @@ function toggleFields() {
     const ni = document.getElementById('assetName'), prIn = document.getElementById('assetPrice');
     const curIn = document.getElementById('assetCur'), curLb = document.getElementById('curLabel');
 
-    if (t === 'gold') { nl.textContent = 'Название'; ni.placeholder = 'Георгий Победоносец'; ql.textContent = 'Кол-во (шт)'; pl.textContent = 'Цена покупки за монету (₽)'; curLb.textContent = 'Текущая цена (₽)'; }
+    if (t === 'gold') { nl.textContent = 'Название'; ni.placeholder = 'Георгий Победоносец'; ql.textContent = 'Кол-во (шт)'; pl.textContent = 'Цена покупки (₽)'; curLb.textContent = 'Текущая цена (₽)'; }
     else if (t === 'cash') { nl.textContent = 'Валюта'; ni.placeholder = 'Рубли'; ql.textContent = 'Сумма (₽)'; pl.textContent = 'Номинал'; }
     else { nl.textContent = 'Тикер'; ni.placeholder = 'SBER'; ql.textContent = 'Количество (шт)'; pl.textContent = 'Цена покупки (₽)'; }
 
@@ -533,4 +549,158 @@ function saveAsset() {
 
     if (!name || qty <= 0) return alert('Заполните название и количество');
 
-    const upperName = name.to
+    const upperName = name.toUpperCase();
+    if (TICKER_MAP[name.toLowerCase()]) name = TICKER_MAP[name.toLowerCase()];
+    else if (type === 'stock' || type === 'bond') name = upperName; 
+
+    if (type === 'cash') { price = 1; cur = 1; }
+    else if (type === 'gold' && cur <= 0) cur = price;
+    else if (!cur) cur = price;
+
+    if (editingId) {
+        const h = holdings.find(x => x.id === editingId);
+        if (h) { h.accId = accId; h.type = type; h.name = name; h.qty = qty; h.avg = price; h.cur = cur; }
+    } else {
+        holdings.push({ id: uid(), accId, type, name, qty, avg: price, cur: cur, face: type === 'bond' ? 1000 : undefined });
+    }
+
+    save(); closeModal();
+    if (type !== 'cash') updateMarkets();
+}
+
+function triggerOCR() {
+    if (typeof Tesseract === 'undefined') return alert('Библиотека распознавания еще загружается. Подождите 5 секунд и попробуйте снова.');
+    
+    const accList = Object.keys(ACCOUNTS).map(k => `${k}: ${ACCOUNTS[k].name} (${ACCOUNTS[k].owner})`).join('\n');
+    const accId = prompt(`На какой счет загружаем скриншот?\nВведите код:\n\n${accList}`, "acc1");
+    if (accId && ACCOUNTS[accId]) { window._ocrTargetAccount = accId; document.getElementById('ocrInput').click(); }
+    else if (accId) alert('Неверный код счета');
+}
+
+async function processOCR(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const overlay = document.getElementById('ocrOverlay'), textEl = document.getElementById('ocrText');
+    overlay.classList.add('active'); textEl.textContent = 'Загрузка...';
+
+    try {
+        const result = await Tesseract.recognize(file, 'rus+eng', {
+            logger: m => { if (m.status === 'recognizing text') textEl.textContent = `Распознавание: ${Math.round(m.progress*100)}%`; }
+        });
+        textEl.textContent = 'Анализ...';
+        parseOCRResult(result.data.text, window._ocrTargetAccount);
+    } catch(e) { alert('Ошибка: ' + e.message); } 
+    finally { overlay.classList.remove('active'); input.value = ''; }
+}
+
+function parseOCRResult(text, targetAccId) {
+    const lines = text.split('\n'); let found = 0;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim(); if (!line) continue;
+        const lower = line.toLowerCase(); let matchedTicker = null;
+        for (const [key, ticker] of Object.entries(TICKER_MAP)) { if (lower.includes(key)) { matchedTicker = ticker; break; } }
+        if (lower.includes('офз')) { const m = line.match(/офз\s*(\d+)/i); if (m) matchedTicker = `SU${m[1]}RMFS4`; }
+
+        if (matchedTicker || /^[A-Z]{4,5}$/.test(line.toUpperCase())) {
+            const searchSpace = line + ' ' + (lines[i+1] || '') + ' ' + (lines[i+2] || '');
+            const qtyMatch = searchSpace.match(/(\d[\d\s]*)\s*(шт|шт\.|штук)/i);
+            if (qtyMatch) {
+                const qty = parseInt(qtyMatch[1].replace(/\s/g, ''), 10);
+                if (qty > 0) {
+                    const ticker = matchedTicker || line.toUpperCase().replace(/[^A-Z]/g, '');
+                    const existing = holdings.find(h => h.accId === targetAccId && h.name === ticker);
+                    if (existing) existing.qty = qty;
+                    else holdings.push({ id: uid(), accId: targetAccId, type: ticker.startsWith('SU') ? 'bond' : 'stock', name: ticker, qty: qty, avg: 0, cur: 0 });
+                    found++; i += 2;
+                }
+            }
+        }
+    }
+    if (found > 0) { save(); setTimeout(() => alert(`Добавлено: ${found} активов.`), 300); updateMarkets(); }
+    else alert('Не найдено активов с количеством.');
+}
+
+async function safeFetch(url, timeoutMs = 4000) {
+    try { const ctrl = new AbortController(); const id = setTimeout(() => ctrl.abort(), timeoutMs); const res = await fetch(url, { signal: ctrl.signal }); clearTimeout(id); return res.ok ? await res.json() : null; } catch { return null; }
+}
+
+async function updateMarkets() {
+    const btn = document.querySelector('.btn-moex');
+    if (btn.disabled) return;
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = '⏳';
+
+    const tasks = [];
+    if (holdings.some(h => h.type === 'gold')) {
+        tasks.push((async () => {
+            const cbr = await safeFetch('https://www.cbr-xml-daily.ru/daily_json.js');
+            if (cbr?.Valute?.XAU?.Value) {
+                const g = cbr.Valute.XAU.Value / 31.1035;
+                holdings.forEach(h => { if (h.type === 'gold') h.cur = Math.round(g * GOLD_WEIGHT); });
+            }
+        })());
+    }
+
+    const moex = holdings.filter(h => h.type === 'stock' || h.type === 'bond');
+    const tickers = [...new Set(moex.map(h => h.name.toUpperCase()))];
+
+    tickers.forEach(t => {
+        tasks.push((async () => {
+            const desc = await safeFetch(`https://iss.moex.com/iss/securities/${encodeURIComponent(t)}.json`); if (!desc) return;
+            let face = null; const fRow = (desc.description?.data || []).find(r => r[0] === 'FACEVALUE'); if (fRow && fRow[2] != null) face = parseFloat(fRow[2]);
+            let market = 'shares', board = 'TQBR';
+            const bc = desc.boards?.columns || [], bd = desc.boards?.data || [], bi = bc.indexOf('boardid'), mi = bc.indexOf('market');
+            if (bi > -1) {
+                const pref = moex.find(h => h.name.toUpperCase() === t)?.type === 'bond' ? ['TQCB', 'TQOB', 'TQIR'] : ['TQBR', 'TQTF', 'TQIF', 'TQBS'];
+                const row = bd.find(r => pref.includes(r[bi])) || bd[0];
+                if (row) { board = row[bi]; market = row[mi]; }
+            }
+            const md = await safeFetch(`https://iss.moex.com/iss/engines/stock/markets/${market}/boards/${board}/securities/${encodeURIComponent(t)}.json`);
+            const cols = md?.marketdata?.columns || [], rows = md?.marketdata?.data || [];
+            let lastPrice = null;
+            if (rows.length) {
+                const idxLast = cols.indexOf('LAST'), idxWap = cols.indexOf('WAPRICE'), idxPrev = cols.indexOf('PREVPRICE');
+                const pIdx = [idxLast, idxWap, idxPrev].find(i => i > -1 && rows[0][i] != null);
+                if (pIdx !== undefined) lastPrice = rows[0][pIdx];
+            }
+            if (lastPrice != null) {
+                holdings.forEach(h => {
+                    if (h.name.toUpperCase() === t) {
+                        if (h.type === 'bond') { if (face) h.face = face; h.cur = h.face ? lastPrice * h.face / 100 : lastPrice; } 
+                        else h.cur = lastPrice;
+                    }
+                });
+            }
+        })());
+    });
+
+    await Promise.allSettled(tasks);
+    save(); btn.disabled = false; btn.textContent = orig;
+}
+
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(holdings, null, 2));
+    const a = document.createElement('a'); a.setAttribute("href", dataStr); a.setAttribute("download", "portfolio_backup.json"); a.click();
+}
+
+function importData(input) {
+    const file = input.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try { const data = JSON.parse(e.target.result); if (Array.isArray(data)) { holdings = data; save(); alert('Данные загружены!'); } } 
+        catch { alert('Ошибка JSON'); }
+    };
+    reader.readAsText(file); input.value = '';
+}
+
+// Запуск
+try {
+    initSelects();
+    render();
+    setTimeout(checkLock, 100); // Небольшая задержка для уверенности, что DOM загружен
+} catch (e) {
+    console.error(e);
+    document.getElementById('mainApp').style.display = 'block';
+}
+</script>
+</body>
+</html>
