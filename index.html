@@ -102,6 +102,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 .ocr-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
 .spinner { width:40px; height:40px; border:3px solid #333; border-top-color:var(--yellow); border-radius:50%; animation:spin .8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* Review List Styles */
+.review-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #333; }
+.review-name { font-weight: 600; color: #fff; }
+.review-qty { color: var(--gray); font-size: 14px; }
 </style>
 </head>
 <body>
@@ -146,7 +151,6 @@ input:checked + .slider:before { transform: translateX(20px); }
         <button class="btn" onclick="exportData()">💾 Бэкап</button>
         
         <!-- Скрытые инпуты -->
-        <input type="file" id="ocrInputSingle" accept="image/*" style="display:none" onchange="processSingleOCR(this)">
         <input type="file" id="ocrInputBatch" accept="image/*" multiple style="display:none" onchange="processBatchOCR(this)">
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
     </div>
@@ -209,9 +213,23 @@ input:checked + .slider:before { transform: translateX(20px); }
         <button class="btn" onclick="registerFaceId()" style="width: 100%; justify-content: center; margin-top: 20px; background: #2c2c2e; height: 50px;">😊 Настроить Face ID</button>
         <button class="btn" onclick="setupPin()" style="width: 100%; justify-content: center; margin-top: 10px; background: #2c2c2e; height: 50px;">🔢 Изменить PIN-код</button>
         <button class="btn" onclick="document.getElementById('importFile').click()" style="width: 100%; justify-content: center; margin-top: 20px; background: #2c2c2e; height: 50px;">📥 Восстановить из файла</button>
+    </div>
+</div>
+
+<!-- REVIEW MODAL (NEW) -->
+<div class="modal" id="reviewModal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="document.getElementById('reviewModal').classList.remove('active')">✕</button>
+        <h2 style="margin:0 0 10px; font-size:22px;">Распознано активов</h2>
+        <p style="color:var(--gray); margin-bottom:20px; font-size:14px;">Проверьте список и выберите владельца:</p>
         
-        <div style="margin-top: 30px; text-align: center; color: var(--gray); font-size: 12px;">
-            Portfolio App v3.0 (Bugfix)<br>Data stored locally
+        <div id="reviewList" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0;">
+            <!-- Items will be injected here -->
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-direction: column;">
+            <button class="fab" style="background: var(--blue); color: white;" onclick="assignToOwner('Дмитрий')">Дмитрию</button>
+            <button class="fab" style="background: var(--green); color: black;" onclick="assignToOwner('Аксана')">Аксане</button>
         </div>
     </div>
 </div>
@@ -237,19 +255,19 @@ const ACCOUNTS = {
 
 // Расширенный словарь для OCR
 const TICKER_MAP = {
-    'сбербанк': 'SBER', 'сбер': 'SBER', 'сбербанк россии': 'SBER', 'сбер 6анк': 'SBER',
+    'сбербанк': 'SBER', 'сбер': 'SBER', 'сбербанк россии': 'SBER', 'сбер 6анк': 'SBER', 'сбербанк прив': 'SBERP',
     'газпром': 'GAZP', 'газп': 'GAZP', 'газпром нефть': 'SIBN',
     'лукойл': 'LKOH', 'лукоил': 'LKOH', 'lukoil': 'LKOH',
     'норникель': 'GMKN', 'норильский никель': 'GMKN',
-    'роснефть': 'ROSN', 'татнефть': 'TATN', 'татнефть ап': 'TATNP',
+    'роснефть': 'ROSN', 'татнефть': 'TATN', 'татнефть ап': 'TATNP', 'татнефть прив': 'TATNP',
     'тинькофф': 'T', 'т-технологии': 'T', 'т банк': 'T',
     'яндекс': 'YDEX', 'yandex': 'YDEX',
     'мосбиржа': 'MOEX', 'moex': 'MOEX', 'московская биржа': 'MOEX',
     'аэрофлот': 'AFLT', 'втб': 'VTBR', 'банк втб': 'VTBR',
     'северсталь': 'CHMF', 'ммк': 'MAGN', 'нкхз': 'NKNC',
     'новатэк': 'NVTK', 'полюс': 'PLZL',
-    'сургутнефтегаз': 'SNGS', 'сургутнефтегаз ао': 'SNGSP',
-    'транснефть': 'TRNFP', 'транснефть п': 'TRNFP',
+    'сургутнефтегаз': 'SNGS', 'сургутнефтегаз ао': 'SNGSP', 'сургутнефтегаз прив': 'SNGSP',
+    'транснефть': 'TRNFP', 'транснефть п': 'TRNFP', 'транснефть прив': 'TRNFP',
     'фосагро': 'PHOR', 'мтс': 'MTSS', 'магнит': 'MGNT',
     'икс 5': 'X5', 'x5 group': 'X5', 'корп центр': 'X5', 'корпоративный центр': 'X5',
     'головешки': 'LEZHEBOKI', 'лежебоки': 'LEZHEBOKI', 'fond lezheboki': 'LEZHEBOKI',
@@ -277,6 +295,7 @@ let ocrWorker = null;
 let isProcessingBatch = false;
 let batchQueue = [];
 let batchIndex = 0;
+let tempOcrResults = []; // Хранилище для результатов перед распределением
 
 // === UTILS ===
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -428,4 +447,449 @@ function save() {
 }
 
 function renderFilters() {
-    const owners = ['Все
+    const owners = ['Все', ...new Set(Object.values(ACCOUNTS).map(a => a.owner))];
+    document.getElementById('ownersFilter').innerHTML = owners.map(o => 
+        `<button class="owner-btn ${currentFilter === o ? 'active' : ''}" onclick="setFilter('${o}')">${o}</button>`
+    ).join('');
+}
+
+function setFilter(owner) { currentFilter = owner; render(); }
+
+function render() {
+    renderFilters();
+    const filtered = holdings.filter(h => currentFilter === 'Все' || ACCOUNTS[h.accId]?.owner === currentFilter);
+    
+    const grouped = {};
+    filtered.forEach(h => {
+        if (!grouped[h.name]) grouped[h.name] = { name: h.name, type: h.type, totalQty: 0, totalCost: 0, totalVal: 0, accounts: [] };
+        const g = grouped[h.name];
+        g.totalQty += h.qty; 
+        g.totalCost += h.qty * (h.avg || 0); 
+        g.totalVal += h.qty * (h.cur || 0); 
+        g.accounts.push(h);
+    });
+
+    const groups = Object.values(grouped).sort((a, b) => b.totalVal - a.totalVal);
+    
+    let tv = 0, ti = 0; 
+    groups.forEach(g => { tv += g.totalVal; ti += g.totalCost; });
+    const pr = tv - ti; 
+    const pc = ti > 0 ? (pr / ti) * 100 : 0;
+
+    document.getElementById('totalBalance').textContent = fmt(tv);
+    const pEl = document.getElementById('totalProfit'); 
+    pEl.textContent = (pr >= 0 ? '+' : '') + fmt(pr); 
+    pEl.className = pr >= 0 ? 'green' : 'red';
+    
+    const pctEl = document.getElementById('totalPct'); 
+    pctEl.textContent = `${pc >= 0 ? '+' : ''}${pc.toFixed(2)}%`; 
+    pctEl.className = pc >= 0 ? 'green' : 'red';
+
+    if (!groups.length) { 
+        document.getElementById('appContent').innerHTML = '<div class="empty-state">Портфель пуст<br><br>Нажмите «＋ Добавить актив»<br>или используйте «📷 Массовая загрузка»</div>'; 
+        return; 
+    }
+
+    document.getElementById('appContent').innerHTML = groups.map(g => {
+        const cfg = CONFIG[g.type] || CONFIG.stock;
+        const profit = g.totalVal - g.totalCost; 
+        const pct = g.totalCost > 0 ? (profit / g.totalCost) * 100 : 0;
+        const isExpanded = expandedGroups.has(g.name) ? 'active' : '';
+
+        const accRows = g.accounts.map(h => {
+            const acc = ACCOUNTS[h.accId] || { name: 'Неизвестный счет', owner: '-' };
+            return `
+            <div class="acc-row" onclick="editHolding('${h.id}')">
+                <div class="acc-info"><span class="acc-name">${acc.name}</span><span class="acc-owner">${acc.owner}</span></div>
+                <div class="acc-values">
+                    <div style="text-align:right">
+                        <div style="font-weight:600">${h.qty} ${g.type === 'cash' ? '₽' : 'шт.'}</div>
+                        <div style="font-size:11px; color:var(--gray)">${fmt(h.qty * (h.cur || 0))}</div>
+                    </div>
+                    <div class="edit-icon">✎</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        let details = `${g.totalQty} ${g.type === 'cash' ? '₽' : 'шт.'}`;
+        if (g.type === 'gold') details += ` • ~${(g.totalQty * 7.78).toFixed(1)} г`;
+
+        return `
+        <div class="group-wrap">
+            <div class="group-header" onclick="toggleGroup('${g.name.replace(/'/g, "\\'")}')">
+                <div class="icon-box" style="color:${cfg.color}">${cfg.icon}</div>
+                <div class="info">
+                    <div class="name">${g.name}</div>
+                    <div class="details">${details}</div>
+                </div>
+                <div class="values">
+                    <div class="val">${fmt(g.totalVal)}</div>
+                    <div class="change ${profit >= 0 ? 'green' : 'red'}">${profit >= 0 ? '+' : ''}${pct.toFixed(1)}%</div>
+                </div>
+            </div>
+            <div class="group-body ${isExpanded}">${accRows}</div>
+        </div>`;
+    }).join('');
+}
+
+function toggleGroup(name) { 
+    if (expandedGroups.has(name)) expandedGroups.delete(name); 
+    else expandedGroups.add(name); 
+    render(); 
+}
+
+// === MODAL LOGIC ===
+function initSelects() { 
+    document.getElementById('assetAccount').innerHTML = Object.entries(ACCOUNTS).map(([id, acc]) => 
+        `<option value="${id}">${acc.name}</option>`
+    ).join(''); 
+}
+
+function toggleFields() {
+    const t = document.getElementById('assetType').value;
+    const nl = document.getElementById('nameLabel'), ni = document.getElementById('assetName');
+    const pl = document.getElementById('priceLabel');
+    const curBlock = document.getElementById('curPriceBlock');
+
+    if (t === 'gold') { nl.textContent = 'Название монеты'; ni.placeholder = 'Георгий Победоносец'; }
+    else if (t === 'cash') { nl.textContent = 'Валюта'; ni.placeholder = 'Рубли'; pl.textContent = 'Курс (обычно 1)'; curBlock.style.display = 'none'; }
+    else if (t === 'crypto') { nl.textContent = 'Тикер'; ni.placeholder = 'BTC'; curBlock.style.display = 'block'; }
+    else { nl.textContent = 'Тикер / Название'; ni.placeholder = 'SBER'; curBlock.style.display = 'block'; }
+}
+
+function openModal() { 
+    editingId = null; 
+    document.getElementById('modalTitle').textContent = 'Новый актив'; 
+    document.getElementById('deleteBtn').style.display = 'none';
+    ['assetName','assetQty','assetPrice','assetCur'].forEach(id => document.getElementById(id).value = ''); 
+    document.getElementById('assetType').value = 'stock';
+    toggleFields(); 
+    document.getElementById('addModal').classList.add('active'); 
+}
+
+function editHolding(id) {
+    const h = holdings.find(x => x.id === id); if (!h) return;
+    editingId = id; 
+    document.getElementById('modalTitle').textContent = 'Редактировать'; 
+    document.getElementById('deleteBtn').style.display = 'block';
+    
+    document.getElementById('assetAccount').value = h.accId; 
+    document.getElementById('assetType').value = h.type;
+    document.getElementById('assetName').value = h.name; 
+    document.getElementById('assetQty').value = h.qty;
+    document.getElementById('assetPrice').value = h.avg; 
+    document.getElementById('assetCur').value = h.cur || ''; 
+    
+    toggleFields();
+    document.getElementById('addModal').classList.add('active');
+}
+
+function closeModal() { document.getElementById('addModal').classList.remove('active'); editingId = null; }
+
+function deleteAsset() {
+    if (!editingId) return;
+    if (confirm('Удалить эту запись?')) {
+        holdings = holdings.filter(h => h.id !== editingId);
+        save();
+        closeModal();
+    }
+}
+
+function saveAsset() {
+    const accId = document.getElementById('assetAccount').value;
+    const type = document.getElementById('assetType').value;
+    let name = document.getElementById('assetName').value.trim();
+    let qty = num(document.getElementById('assetQty').value);
+    let price = num(document.getElementById('assetPrice').value);
+    let cur = num(document.getElementById('assetCur').value);
+
+    if (!name || qty <= 0) return alert('Заполните название и количество');
+    
+    const lowerName = name.toLowerCase();
+    if (TICKER_MAP[lowerName]) name = TICKER_MAP[lowerName];
+    else if ((type === 'stock' || type === 'bond') && name.length < 6) name = name.toUpperCase();
+
+    if (type === 'cash') { price = 1; cur = 1; }
+    else if (!cur) cur = price; 
+
+    if (editingId) {
+        const h = holdings.find(x => x.id === editingId);
+        if (h) Object.assign(h, { accId, type, name, qty, avg: price, cur });
+    } else {
+        holdings.push({ id: uid(), accId, type, name, qty, avg: price, cur });
+    }
+    save(); closeModal();
+    if (type !== 'cash') updateMarkets();
+}
+
+// === BATCH OCR LOGIC (REWRITTEN) ===
+function triggerBatchOCR() {
+    if (typeof Tesseract === 'undefined') {
+        alert('Библиотека OCR загружается... Попробуйте через 5 секунд.');
+        return;
+    }
+    document.getElementById('ocrInputBatch').click();
+}
+
+async function processBatchOCR(input) {
+    const files = Array.from(input.files);
+    if (files.length === 0) return;
+    
+    // Очищаем предыдущие результаты
+    tempOcrResults = [];
+    batchQueue = files;
+    batchIndex = 0;
+    isProcessingBatch = true;
+    
+    const overlay = document.getElementById('ocrOverlay');
+    overlay.classList.add('active');
+    
+    // Инициализируем воркера один раз на всю партию
+    if (!ocrWorker) {
+        document.getElementById('ocrText').textContent = 'Инициализация движка...';
+        ocrWorker = await Tesseract.createWorker('rus+eng', 1, { logger: m => {} });
+    }
+    
+    processNextBatchItem();
+    input.value = ''; // Сброс инпута
+}
+
+async function processNextBatchItem() {
+    if (batchIndex >= batchQueue.length || !isProcessingBatch) {
+        finishBatchOCR();
+        return;
+    }
+    
+    const file = batchQueue[batchIndex];
+    document.getElementById('ocrText').textContent = `Обработка ${batchIndex + 1} из ${batchQueue.length}...`;
+    document.getElementById('ocrProgress').textContent = file.name;
+    
+    try {
+        const result = await ocrWorker.recognize(file);
+        parseOCRResult(result.data.text, true); // true = silent mode (addToTemp)
+    } catch(e) { console.error("OCR Error", e); }
+    
+    batchIndex++;
+    // Небольшая задержка чтобы UI не фризился
+    setTimeout(processNextBatchItem, 50);
+}
+
+function finishBatchOCR() {
+    isProcessingBatch = false;
+    document.getElementById('ocrOverlay').classList.remove('active');
+    
+    // Показываем модальное окно с результатами
+    showReviewModal();
+}
+
+function cancelOCR() {
+    isProcessingBatch = false;
+    document.getElementById('ocrOverlay').classList.remove('active');
+}
+
+function parseOCRResult(text, silent) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+    let found = 0;
+    
+    const qtyRegex = /(\d[\d\s]*)\s*(шт|штук|share)/i;
+
+    for (let line of lines) {
+        let cleanLine = line.toLowerCase().replace(/[^a-zа-яё0-9]/g, '');
+        let matchedTicker = null;
+
+        for (const [key, ticker] of Object.entries(TICKER_MAP)) {
+            const cleanKey = key.replace(/[^a-zа-яё0-9]/g, '');
+            if (cleanLine.includes(cleanKey)) { matchedTicker = ticker; break; }
+        }
+
+        if (!matchedTicker && cleanLine.includes('офз')) {
+            const m = line.match(/(\d{5})/);
+            if (m) matchedTicker = `SU${m[1]}RMFS4`;
+        }
+
+        if (matchedTicker) {
+            let searchArea = line;
+            const qMatch = searchArea.match(qtyRegex);
+            let qty = 0;
+            
+            if (qMatch) qty = parseInt(qMatch[1].replace(/\s/g, ''), 10);
+            else {
+                const numMatch = line.match(/.*\s(\d+)$/);
+                if (numMatch) qty = parseInt(numMatch[1], 10);
+            }
+
+            if (qty > 0) {
+                if (silent) {
+                    // Добавляем во временный массив
+                    const existing = tempOcrResults.find(r => r.name === matchedTicker);
+                    if (existing) existing.qty += qty;
+                    else tempOcrResults.push({ name: matchedTicker, type: matchedTicker.startsWith('SU') ? 'bond' : 'stock', qty: qty });
+                } else {
+                    // Старая логика (если понадобится)
+                    const targetAccId = window._ocrTargetAccount || 'acc1';
+                    const existing = holdings.find(h => h.accId === targetAccId && h.name === matchedTicker);
+                    if (existing) existing.qty += qty;
+                    else holdings.push({ id: uid(), accId: targetAccId, type: matchedTicker.startsWith('SU') ? 'bond' : 'stock', name: matchedTicker, qty: qty, avg: 0, cur: 0 });
+                }
+                found++;
+            }
+        }
+    }
+}
+
+function showReviewModal() {
+    const list = document.getElementById('reviewList');
+    if (tempOcrResults.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--gray); padding:20px;">Ничего не распознано 😔</div>';
+    } else {
+        list.innerHTML = tempOcrResults.map(item => `
+            <div class="review-item">
+                <span class="review-name">${item.name}</span>
+                <span class="review-qty">${item.qty} шт.</span>
+            </div>
+        `).join('');
+    }
+    document.getElementById('reviewModal').classList.add('active');
+}
+
+function assignToOwner(ownerName) {
+    if (tempOcrResults.length === 0) {
+        document.getElementById('reviewModal').classList.remove('active');
+        return;
+    }
+
+    // Находим первый подходящий счет для владельца
+    let targetAccId = null;
+    for (const [id, acc] of Object.entries(ACCOUNTS)) {
+        if (acc.owner === ownerName) {
+            targetAccId = id;
+            break;
+        }
+    }
+
+    if (!targetAccId) {
+        alert(`Не найден счет для владельца: ${ownerName}`);
+        return;
+    }
+
+    // Переносим данные из temp в holdings
+    tempOcrResults.forEach(item => {
+        const existing = holdings.find(h => h.accId === targetAccId && h.name === item.name);
+        if (existing) {
+            existing.qty += item.qty;
+        } else {
+            holdings.push({ 
+                id: uid(), 
+                accId: targetAccId, 
+                type: item.type, 
+                name: item.name, 
+                qty: item.qty, 
+                avg: 0, 
+                cur: 0 
+            });
+        }
+    });
+
+    save();
+    updateMarkets();
+    document.getElementById('reviewModal').classList.remove('active');
+    tempOcrResults = []; // Очищаем буфер
+    alert(`✅ Активы добавлены владельцу: ${ownerName}`);
+}
+
+// === MARKET DATA ===
+async function safeFetch(url, timeoutMs = 5000) {
+    try { 
+        const ctrl = new AbortController(); 
+        const id = setTimeout(() => ctrl.abort(), timeoutMs); 
+        const res = await fetch(url, { signal: ctrl.signal }); 
+        clearTimeout(id); 
+        return res.ok ? await res.json() : null; 
+    } catch { return null; }
+}
+
+async function updateMarkets() {
+    const btn = document.querySelector('.btn-moex');
+    const oldText = btn.innerHTML;
+    btn.disabled = true; 
+    btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div>';
+
+    if (holdings.some(h => h.type === 'gold')) {
+        const cbr = await safeFetch('https://www.cbr-xml-daily.ru/daily_json.js');
+        if (cbr?.Valute?.XAU?.Value) {
+            const gPrice = cbr.Valute.XAU.Value / 31.1035;
+            holdings.forEach(h => { if (h.type === 'gold') h.cur = Math.round(gPrice * 7.78); });
+        }
+    }
+
+    const moexHoldings = holdings.filter(h => h.type === 'stock' || h.type === 'bond');
+    const uniqueTickers = [...new Set(moexHoldings.map(h => h.name.toUpperCase()))];
+
+    for (const t of uniqueTickers) {
+        const desc = await safeFetch(`https://iss.moex.com/iss/securities/${encodeURIComponent(t)}.json`);
+        if (!desc) continue;
+
+        let face = 1000;
+        if (desc.description?.data) {
+            const fRow = desc.description.data.find(r => r[0] === 'FACEVALUE');
+            if (fRow && fRow[2]) face = parseFloat(fRow[2]);
+        }
+
+        let board = 'TQBR';
+        if (desc.boards?.data) {
+            const bc = desc.boards.columns;
+            const bi = bc.indexOf('boardid');
+            const bd = desc.boards.data;
+            const preferred = moexHoldings.find(h => h.name.toUpperCase() === t)?.type === 'bond' ? ['TQCB', 'TQOB'] : ['TQBR'];
+            const foundBoard = bd.find(r => preferred.includes(r[bi]));
+            if (foundBoard) board = foundBoard[bi];
+        }
+
+        const md = await safeFetch(`https://iss.moex.com/iss/engines/stock/markets/shares/boards/${board}/securities/${encodeURIComponent(t)}.json`);
+        if (md?.marketdata?.data?.length) {
+            const cols = md.marketdata.columns;
+            const row = md.marketdata.data[0];
+            const lastIdx = cols.indexOf('LAST');
+            if (lastIdx > -1 && row[lastIdx]) {
+                const price = row[lastIdx];
+                holdings.forEach(h => {
+                    if (h.name.toUpperCase() === t) h.cur = h.type === 'bond' ? (price * face / 100) : price;
+                });
+            }
+        }
+    }
+
+    save();
+    btn.disabled = false;
+    btn.innerHTML = oldText;
+}
+
+// === EXPORT/IMPORT ===
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(holdings, null, 2));
+    const a = document.createElement('a'); a.href = dataStr; a.download = `portfolio_${new Date().toISOString().slice(0,10)}.json`; a.click();
+}
+
+function importData(input) {
+    const file = input.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try { 
+            const data = JSON.parse(e.target.result); 
+            if (Array.isArray(data)) { 
+                if(confirm(`Загрузить ${data.length} записей? Текущие данные будут заменены.`)) {
+                    holdings = data; 
+                    save(); 
+                    alert('Данные восстановлены!');
+                }
+            } 
+        } catch { alert('Ошибка файла'); }
+    };
+    reader.readAsText(file);
+}
+
+// Start
+init();
+</script>
+</body>
+</html>
