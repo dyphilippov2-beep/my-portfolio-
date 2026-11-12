@@ -1,1414 +1,1099 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101216">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#000000">
-<title>Портфель</title>
+<title>Портфель Pro · исправленная версия</title>
+
 <style>
-*{box-sizing:border-box}
-body{
-    background:#000;
-    color:#fff;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    margin:0;
-    padding-bottom:calc(35px + env(safe-area-inset-bottom))
+:root {
+    color-scheme: dark;
+    --bg: #101216;
+    --card: #1b1f26;
+    --line: #343b46;
+    --muted: #a7b0bd;
+    --accent: #ffe16b;
+    --green: #73e4a5;
+    --red: #ff9090;
 }
-main{max-width:850px;margin:auto}
-.header{padding:20px;border-bottom:1px solid #333}
-.balance{font-size:32px;font-weight:700;margin:10px 0}
-.green{color:#30d158}
-.red{color:#ff6961}
-.muted,small{color:#aaa;font-size:13px}
-.actions{display:flex;gap:10px;padding:15px;flex-wrap:wrap}
-button{cursor:pointer}
-.btn{
-    background:#28282b;
-    border:0;
-    color:#fff;
-    padding:12px 15px;
-    border-radius:10px;
-    font-size:14px
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: #f6f7fa;
+    font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom));
 }
-.btn-primary{background:#ffd60a;color:#000;font-weight:700}
-button:disabled{opacity:.45;cursor:wait}
-.list{padding:0 15px}
-.item{
-    background:#1c1c1e;
-    margin-bottom:10px;
-    border-radius:12px;
-    padding:15px
+
+button, input, select, textarea { font: inherit; }
+
+button {
+    cursor: pointer;
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #252b34;
+    color: inherit;
+    padding: 10px 14px;
 }
-summary{
-    cursor:pointer;
-    list-style:none;
-    display:flex;
-    justify-content:space-between;
-    gap:12px
+
+button:disabled { opacity: .45; cursor: wait; }
+button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); }
+
+.primary { background: var(--accent); color: #171a20; border-color: var(--accent); font-weight: 700; }
+.danger, .red { color: var(--red); }
+.green { color: var(--green); }
+.muted, small { color: var(--muted); }
+
+small { display: block; font-size: 13px; line-height: 1.5; }
+
+header, main, footer { max-width: 860px; margin: auto; padding: 20px; }
+header { padding-top: calc(22px + env(safe-area-inset-top)); }
+
+.top, .row, .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.top { justify-content: space-between; }
+
+.brand { font-size: 13px; letter-spacing: 2px; color: var(--accent); }
+h1 { font-size: clamp(26px, 6vw, 42px); margin: 16px 0 6px; overflow-wrap: anywhere; }
+h2 { font-size: 22px; margin: 0 0 18px; }
+h3 { font-size: 17px; }
+.actions { margin: 18px 0; }
+
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.filters input { grid-column: 1 / -1; }
+
+input, select, textarea {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    background: #12161c;
+    color: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    margin: 6px 0 14px;
 }
-.item-info{min-width:0;overflow-wrap:anywhere}
-.item-info b{display:block;margin-bottom:5px}
-.item-val{text-align:right}
-.position{
-    padding:12px 0;
-    border-top:1px solid #444;
-    margin-top:12px
+
+input[type="checkbox"] { width: 22px; min-height: 22px; margin: 0; }
+label { display: block; font-size: 14px; color: var(--muted); }
+
+.card, details {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    margin: 12px 0;
+    padding: 16px;
 }
-.position button{margin:8px 6px 0 0}
-.modal{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:#000c;
-    z-index:100;
-    align-items:flex-end;
-    justify-content:center
+
+summary { cursor: pointer; display: flex; justify-content: space-between; gap: 14px; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary strong { display: block; overflow-wrap: anywhere; }
+.right { text-align: right; flex-shrink: 0; }
+
+.position { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px; }
+.position button { margin-top: 10px; }
+
+.notice { border-left: 3px solid var(--accent); background: #25251c; padding: 12px; margin: 12px 0; line-height: 1.5; white-space: pre-line; }
+.empty { text-align: center; padding: 44px 15px; color: var(--muted); }
+
+dialog {
+    background: var(--card);
+    color: #fff;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 24px;
+    width: min(600px, calc(100% - 20px));
+    max-height: 90dvh;
+    overflow: auto;
 }
-.modal.open{display:flex}
-.modal-content{
-    background:#1c1c1e;
-    width:100%;
-    max-width:850px;
-    max-height:90vh;
-    max-height:90dvh;
-    border-radius:20px 20px 0 0;
-    padding:20px;
-    padding-bottom:calc(20px + env(safe-area-inset-bottom));
-    overflow-y:auto
+
+dialog::backdrop { background: #000b; backdrop-filter: blur(4px); }
+.dialoghead { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
+.dialoghead button { flex-shrink: 0; }
+.dialoghead h2 { padding-top: 8px; }
+body:has(dialog[open]) { overflow: hidden; }
+
+.review { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 12px 0; }
+.review img { max-height: 180px; max-width: 100%; display: block; margin: 10px auto; }
+.review pre { white-space: pre-wrap; font: 12px monospace; color: var(--muted); }
+
+.hidden, [hidden] { display: none !important; }
+
+#lock { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: grid; place-items: center; padding: 20px; }
+#lock form { max-width: 340px; width: 100%; }
+.inline { display: flex; gap: 12px; align-items: center; }
+.help { line-height: 1.6; font-size: 14px; color: var(--muted); }
+
+@media (max-width: 480px) {
+    header, main, footer { padding-left: 14px; padding-right: 14px; }
+    .right { max-width: 48%; }
+    .right strong { font-size: 15px; }
+    summary { font-size: 15px; }
+    .actions button { flex: 1; }
+    .filters { grid-template-columns: 1fr; }
+    .filters input { grid-column: auto; }
+    dialog { margin: auto auto 0; border-radius: 20px 20px 0 0; width: 100%; max-height: 92dvh; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 }
-.overlay{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:#000e;
-    z-index:200;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    padding:24px
-}
-.overlay.active{display:flex}
-.spinner{
-    width:40px;
-    height:40px;
-    border:4px solid #333;
-    border-top-color:#ffd60a;
-    border-radius:50%;
-    animation:spin 1s linear infinite;
-    margin-bottom:20px
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-input,select{
-    width:100%;
-    padding:12px;
-    background:#2c2c2e;
-    border:1px solid #555;
-    border-radius:8px;
-    color:#fff;
-    margin-bottom:10px;
-    font-size:16px
-}
-input[type=checkbox]{width:auto}
-label{display:block;margin-bottom:5px;color:#ccc;font-size:13px}
-#notice{
-    margin:0 15px 15px;
-    white-space:pre-line;
-    color:#ffd60a
-}
-#storageWarning{
-    margin:15px;
-    color:#ffb4ae;
-    white-space:pre-line
-}
-.review-row{padding:12px 0;border-bottom:1px solid #444}
-.full{width:100%;margin-top:10px}
-.help{line-height:1.5;margin:15px;color:#aaa;font-size:13px}
-:focus-visible{outline:2px solid #ffd60a;outline-offset:3px}
 </style>
 </head>
 <body>
-<main>
-    <header class="header">
-        <div class="muted">ОБЩИЙ КАПИТАЛ • RUB</div>
-        <div class="balance" id="totalBalance">0 ₽</div>
-        <div id="totalProfit">0 ₽</div>
-        <p class="muted" id="valuationNote"></p>
+
+<div id="app">
+    <header>
+        <div class="top">
+            <div class="brand">ПОРТФЕЛЬ / PRO</div>
+            <div class="row">
+                <button id="hideBtn" aria-label="Скрыть суммы">◉</button>
+                <button id="settingsBtn" aria-label="Настройки">⚙</button>
+            </div>
+        </div>
+        <small id="scopeLabel">Все счета · RUB</small>
+        <h1 id="balance">0 ₽</h1>
+        <div id="profit"></div>
+        <small id="valueNote"></small>
+        <div class="actions">
+            <button class="primary" id="addBtn">＋ Актив</button>
+            <button id="scanBtn">Скриншоты</button>
+            <button id="pricesBtn">↻ Цены</button>
+        </div>
+        <div class="row">
+            <button id="cashBtn">Наличные</button>
+            <button id="goldBtn">Монеты</button>
+            <button id="backupBtn">Скачать копию</button>
+        </div>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <button id="undoBtn" hidden>Отменить последнее изменение</button>
     </header>
 
-    <div id="storageWarning" role="alert"></div>
-
-    <div class="actions">
-        <button class="btn btn-primary" id="addBtn">＋ Добавить</button>
-        <button class="btn" id="scanBtn">📷 Массовая загрузка</button>
-        <button class="btn" id="pricesBtn">↻ Цены</button>
-        <button class="btn" id="exportBtn">Скачать копию</button>
-        <button class="btn" id="importBtn">Восстановить</button>
-        <button class="btn red" id="clearBtn">Сброс</button>
-
-        <input type="file" id="fileInput" multiple accept="image/*" hidden>
-        <input type="file" id="backupInput" accept="application/json,.json" hidden>
-    </div>
-
-    <div id="notice" role="status" aria-live="polite"></div>
-    <div class="list" id="portfolioList"></div>
-
-    <p class="help">
-        Нажмите на бумагу, чтобы увидеть покупки по владельцам и счетам.
-        Прибыль здесь — изменение стоимости относительно покупки,
-        без дивидендов, комиссий и налогов.
-        Цены MOEX могут поступать с задержкой.
-        Автообновление доступно для рублёвых акций режима TQBR;
-        облигации, фонды и другие активы вводятся вручную в рублях за единицу.
-        Для ОФЗ указывайте цену в рублях, а не проценты от номинала;
-        НКД автоматически не учитывается.
-    </p>
-
-    <p class="help">
-        Учёт работает в браузере без ChatGPT.
-        Для OCR и котировок нужен интернет.
-        Данные хранятся в этом браузере; скачивайте резервную копию
-        перед сменой устройства, адреса страницы или очисткой браузера.
-    </p>
-</main>
-
-<div class="modal" id="addModal"
-     role="dialog" aria-modal="true" aria-labelledby="addTitle">
-    <div class="modal-content">
-        <h3 id="addTitle">Добавить актив</h3>
-
-        <form id="assetForm">
-            <label for="newOwner">Владелец</label>
-            <select id="newOwner">
+    <main>
+        <div class="filters">
+            <select id="ownerFilter" aria-label="Владелец">
+                <option value="">Все владельцы</option>
                 <option>Дмитрий</option>
                 <option>Аксана</option>
             </select>
+            <select id="accountFilter" aria-label="Счёт"></select>
+            <input id="search" placeholder="Поиск по названию или тикеру" aria-label="Поиск">
+        </div>
+        <div id="list"></div>
+    </main>
 
-            <label for="newAccount">Счёт / портфель</label>
-            <input id="newAccount"
-                   placeholder="Например: Т-Инвестиции"
-                   maxlength="100">
+    <footer class="help">
+        Учёт в рублях. Данные сохраняются в этом браузере.
+        Перед сменой адреса страницы или устройства скачайте копию.
+        Без интернета доступны сохранённые позиции и цены;
+        для котировок и распознавания нужен интернет.
+        Доходы от дивидендов, купонов, комиссии и налоги в прибыль не входят.
+        Это файл приложения, а не установленная офлайн-PWA.
+    </footer>
+</div>
 
-            <label for="newName">Тикер / название</label>
-            <input id="newName" placeholder="SBER" maxlength="100" required>
-
-            <label for="newKind">Обновление цены</label>
-            <select id="newKind">
-                <option value="share">Акция MOEX, TQBR (RUB)</option>
-                <option value="manual">
-                    Ручная цена (облигация, фонд, другой актив)
-                </option>
+<dialog id="editDialog">
+    <div class="dialoghead">
+        <h2 id="editTitle">Добавить актив</h2>
+        <button data-close="editDialog" aria-label="Закрыть">✕</button>
+    </div>
+    <form id="assetForm">
+        <label>Счёт<select id="acc"></select></label>
+        <label>Тип актива
+            <select id="kind">
+                <option value="share">Акции</option>
+                <option value="bond">Облигации</option>
+                <option value="fund">Фонд</option>
+                <option value="cash">Наличные / рубли</option>
+                <option value="gold">Золотые монеты</option>
+                <option value="manual">Другой актив</option>
             </select>
-
-            <label for="newQty">Количество единиц (не лотов)</label>
-            <input id="newQty" inputmode="decimal" required placeholder="10">
-
-            <label for="newPrice">
-                Цена покупки за единицу, ₽ (пусто — неизвестна)
+        </label>
+        <label>Название / тикер
+            <input id="name" required maxlength="100" autocomplete="off" placeholder="Сбер ап / SBERP / ОФЗ 26238">
+        </label>
+        <label id="qtyLabel">Количество<input id="qty" required inputmode="decimal"></label>
+        <div id="priceFields">
+            <label>Средняя цена покупки за единицу, ₽ · если известна
+                <input id="cost" inputmode="decimal" placeholder="Неизвестна">
             </label>
-            <input id="newPrice" inputmode="decimal" placeholder="100,50">
-
-            <label for="newCur">
-                Текущая цена за единицу, ₽ (пусто — оценка по покупке)
+            <label>Текущая цена за единицу, ₽ · если известна
+                <input id="current" inputmode="decimal" placeholder="Нет котировки">
             </label>
-            <input id="newCur" inputmode="decimal" placeholder="110,00">
+        </div>
+        <div id="bondFields" hidden>
+            <label>НКД за одну облигацию, ₽ · если известен
+                <input id="accrued" inputmode="decimal">
+            </label>
+            <small>Цены покупки и текущая цена здесь — чистые цены в рублях, без НКД. Изменение цены показывается отдельно от НКД.</small>
+        </div>
+        <div id="sourceFields" hidden>
+            <label>Источник ручной оценки / ссылка
+                <input id="source" maxlength="300" placeholder="Название продавца, цена выкупа или продажи">
+            </label>
+            <small>Автоматического получения цены монет в этой версии нет. Укажите цену и источник; дата оценки сохранится.</small>
+        </div>
+        <p class="help">Каждая запись сохраняется отдельно. Одинаковые бумаги объединяются только на экране. Исправляйте конкретную запись, чтобы не потерять другие покупки.</p>
+        <button class="primary" type="submit">Сохранить</button>
+        <button id="deleteBtn" class="danger" type="button" hidden>Удалить запись</button>
+        <div id="formError" class="notice" role="alert" hidden></div>
+    </form>
+</dialog>
 
-            <button class="btn btn-primary full" type="submit">
-                Сохранить
-            </button>
-            <button class="btn full" type="button" data-close="addModal">
-                Отмена
-            </button>
-        </form>
+<dialog id="settingsDialog">
+    <div class="dialoghead">
+        <h2>Настройки и данные</h2>
+        <button data-close="settingsDialog" aria-label="Закрыть">✕</button>
     </div>
-</div>
+    <div class="actions">
+        <button id="restoreBtn">Восстановить JSON</button>
+        <button id="previousBtn">Вернуть предыдущую копию</button>
+    </div>
+    <button id="rawBtn">Скачать исходные данные хранилища</button>
 
-<div class="modal" id="reviewModal"
-     role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
-    <div class="modal-content">
-        <h3 id="reviewTitle">Проверить распознавание</h3>
+    <h3>Блокировка интерфейса</h3>
+    <p class="help">PIN скрывает интерфейс, но не шифрует портфель. WebAuthn / Face ID не используется как имитация защиты. Для настоящей конфиденциальности требуется отдельное шифрование данных.</p>
 
-        <p class="muted">
-            Это кандидаты, а не готовые данные.
-            Исправьте тикер, количество и цену покупки.
-            Лоты не переводятся в штуки автоматически.
-            Возможные повторы не выбраны.
-            Снимки портфеля нельзя складывать как новые покупки без проверки.
-        </p>
+    <form id="pinSetup">
+        <label>Текущий PIN (если установлен)
+            <input id="oldPin" type="password" inputmode="numeric" autocomplete="off">
+        </label>
+        <label>Новый PIN · 6–12 цифр
+            <input id="newPin" type="password" inputmode="numeric" autocomplete="new-password">
+        </label>
+        <label>Повторите PIN
+            <input id="repeatPin" type="password" inputmode="numeric" autocomplete="new-password">
+        </label>
+        <button type="submit">Установить PIN</button>
+        <button id="disablePin" type="button">Отключить PIN</button>
+        <p id="pinInfo" class="help"></p>
+    </form>
+    <button id="lockBtn">Заблокировать сейчас</button>
+    <p class="help">Повторная блокировка — после 1 минуты в фоне. Забытый PIN нельзя восстановить; заранее сохраните JSON-копию отдельно.</p>
+    <hr>
+    <button id="resetBtn" class="danger">Очистить портфель</button>
+    <p class="help">Очистка удаляет активы из текущей версии. Настройки PIN и данные старого приложения сохраняются.</p>
+</dialog>
 
-        <label for="reviewOwner">Владелец для выбранных строк</label>
-        <select id="reviewOwner">
-            <option>Дмитрий</option>
-            <option>Аксана</option>
+<dialog id="scanDialog">
+    <div class="dialoghead">
+        <h2>Импорт скриншотов</h2>
+        <button id="closeScan" aria-label="Закрыть">✕</button>
+    </div>
+    <label>Все снимки в этом запуске относятся к счёту<select id="scanAcc"></select></label>
+    <p class="help">Загружайте по одному счёту за раз. Повторные строки не складываются. Лоты не считаются штуками: количество нужно перевести по размеру лота. Неоднозначные названия и повторные позиции отмечены для проверки.</p>
+    <input id="images" type="file" accept="image/*" multiple>
+    <button id="cancelScan" hidden>Остановить</button>
+    <p id="scanStatus" role="status"></p>
+    <div id="review"></div>
+    <label>Как добавить
+        <select id="importMode">
+            <option value="add">Добавить новые записи (совпадения на счёте запрещены)</option>
+            <option value="replace">Заменить остатки выбранных бумаг на этом счёте</option>
         </select>
+    </label>
+    <p class="help">Замена меняет только выбранные бумаги. Если количество изменилось, неизвестная цена покупки не переносится из старого остатка. Остальные активы остаются.</p>
+    <button class="primary" id="applyScan" disabled>Применить выбранные</button>
+</dialog>
 
-        <label for="reviewAccount">Счёт / портфель</label>
-        <input id="reviewAccount" placeholder="Название счёта" maxlength="100">
+<input type="file" id="restoreFile" accept=".json,application/json" hidden>
 
-        <div id="reviewList"></div>
-
-        <button id="assignBtn" class="btn btn-primary full">
-            Добавить выбранные
-        </button>
-        <button class="btn full" data-close="reviewModal">
-            Отмена
-        </button>
-    </div>
-</div>
-
-<div class="overlay" id="ocrOverlay"
-     role="dialog" aria-modal="true" aria-label="Распознавание">
-    <div class="spinner"></div>
-    <div id="ocrStatus">Обработка...</div>
-    <button class="btn" id="stopBtn" style="margin-top:20px">Стоп</button>
+<div id="lock" hidden>
+    <form id="unlockForm">
+        <h2>Портфель заблокирован</h2>
+        <label>PIN<input id="unlockPin" type="password" inputmode="numeric" autocomplete="off" required></label>
+        <button class="primary" type="submit">Открыть</button>
+        <p id="lockError" role="alert" class="help"></p>
+    </form>
 </div>
 
 <script>
 'use strict';
 
 const $ = id => document.getElementById(id);
-const KEY = 'myPortfolio';
 
-let portfolio = [];
-let tempScanResults = [];
-let editingId = null;
-let scanJob = null;
-let updating = false;
-let storageBlocked = false;
-let focusReturn = null;
+const KEY = 'portfolio_pro_v4';
+const PREV = KEY + '_previous';
+const AUTH = KEY + '_lock';
 
-const money = n => n.toLocaleString('ru-RU', {
-    style: 'currency',
-    currency: 'RUB',
-    maximumFractionDigits: 2
-});
+const ACCOUNTS = {
+    acc1: { owner: 'Дмитрий', name: 'Сбер (малый)' },
+    acc2: { owner: 'Дмитрий', name: 'Сбер (большой)' },
+    acc3: { owner: 'Дмитрий', name: 'Т-Инвестиции' },
+    acc4: { owner: 'Аксана', name: 'Сбер' },
+    acc5: { owner: 'Аксана', name: 'Т-Инвестиции' }
+};
 
-const count = n => n.toLocaleString('ru-RU', {
-    maximumFractionDigits: 8
-});
+const ALIASES = {
+    'сбербанк ап': 'SBERP', 'сбер ап': 'SBERP', 'сбербанк преф': 'SBERP', 'сбер преф': 'SBERP',
+    'газпром нефть': 'SIBN', 'татнефть ап': 'TATNP', 'сургутнефтегаз ап': 'SNGSP',
+    'ростелеком ап': 'RTKMP', 'сбербанк': 'SBER', 'сбер': 'SBER', 'банк втб': 'VTBR',
+    'втб': 'VTBR', 'газпром': 'GAZP', 'лукойл': 'LKOH', 'новатэк': 'NVTK',
+    'татнефть': 'TATN', 'транснефть ап': 'TRNFP', 'московская биржа': 'MOEX',
+    'мосбиржа': 'MOEX', 'яндекс': 'YDEX', 'ростелеком': 'RTKM', 'аэрофлот': 'AFLT',
+    'полюс': 'PLZL', 'норникель': 'GMKN', 'интер рао': 'IRAO', 'икс 5': 'X5',
+    'x5': 'X5', 'дом.рф': 'DOMRF', 'лежебоки': 'LEZHEBOKI'
+};
 
-const uid = () =>
-    globalThis.crypto?.randomUUID?.() ||
-    Date.now() + '-' + Math.random().toString(36).slice(2);
+let state = { version: 4, positions: [] };
+let blocked = false, loadedRaw = null, editing = null, hiddenMoney = false, undo = null;
+let scanJob = null, scanRows = [], scanURLs = [], quoteBusy = false;
+let locked = false, auth = null, hiddenAt = 0;
 
-function notice(text) {
-    $('notice').textContent = text;
-}
+const uid = () => crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+const clone = value => JSON.parse(JSON.stringify(value));
+function el(tag, text, cls) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (cls) node.className = cls; return node; }
+function notice(text) { $('notice').hidden = !text; $('notice').textContent = text; }
 
-function num(value, optional = false) {
-    if (
-        value === null ||
-        value === undefined ||
-        String(value).trim() === ''
-    ) {
+// ==================== ПРОВЕРКА ДАННЫХ ====================
+function num(value, { optional = false, positive = false, integer = false } = {}) {
+    if (value === null || value === undefined || String(value).trim() === '') {
         if (optional) return null;
-        throw Error('Заполните числовое поле.');
+        throw Error('Укажите число.');
     }
-
-    if (typeof value !== 'number' && typeof value !== 'string') {
-        throw Error('Некорректное число.');
+    let text = String(value).trim();
+    if (/\s/.test(text) && !/^\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:[.,]\d+)?$/.test(text)) {
+        throw Error('Неверные пробелы в числе.');
     }
-
-    const text = String(value)
-        .trim()
-        .replace(/[\s\u00a0\u202f]/g, '')
-        .replace(',', '.');
-
-    if (!/^\d+(?:\.\d+)?$/.test(text)) {
-        throw Error('Введите неотрицательное число, например 100,50.');
+    text = text.replace(/[ \u00a0\u202f]/g, '');
+    // БАГФИКС: разрешаем вводить числа вида .5 или ,5
+    if (!/^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(text)) {
+        throw Error('Введите число без букв, знаков и смешанных разделителей.');
     }
-
-    const result = Number(text);
-
-    if (!Number.isFinite(result) || result > 1e15) {
-        throw Error('Число слишком большое.');
+    const result = Number(text.replace(',', '.'));
+    if (!Number.isFinite(result) || result > 1e14 || (positive && result <= 0) || (integer && !Number.isSafeInteger(result))) {
+        throw Error('Недопустимое число или дробное количество.');
     }
-
     return result;
 }
 
-function normalize(position, legacy = false) {
-    if (!position || typeof position !== 'object') {
-        throw Error('Повреждённая запись.');
-    }
-
-    const name = String(position.name ?? '').trim().toUpperCase();
-
-    if (!name || name.length > 100) {
-        throw Error('Укажите название до 100 символов.');
-    }
-
-    const qty = num(position.qty);
-
-    if (qty <= 0) {
-        throw Error('Количество должно быть больше нуля.');
-    }
-
-    let price = num(position.price, true);
-    let cur = num(position.cur, true);
-
-    // Старый OCR записывал неизвестную стоимость как 0.
-    // Не показываем ложную прибыль при чтении таких данных.
-    if (legacy && price === 0) price = null;
-    if (legacy && cur === 0) cur = null;
-
-    if (
-        !Number.isFinite(qty * (price ?? 0)) ||
-        qty * (price ?? 0) > Number.MAX_SAFE_INTEGER ||
-        qty * (cur ?? 0) > Number.MAX_SAFE_INTEGER
-    ) {
-        throw Error('Стоимость позиции слишком велика.');
-    }
-
-    const owner = String(position.owner ?? 'Не указан').trim();
-    const account = String(position.account ?? '').trim();
-
-    if (!owner || owner.length > 100 || account.length > 100) {
-        throw Error('Проверьте владельца и счёт.');
-    }
-
-    const kind =
-        position.kind === 'share' ? 'share' :
-        position.kind === 'manual' ? 'manual' :
-        /^[A-Z][A-Z0-9]{0,11}$/.test(name) ? 'share' :
-        'manual';
-
-    return {
-        id: String(position.id ?? uid()),
-        name,
-        qty,
-        price,
-        cur,
-        owner,
-        account,
-        kind,
-        quoteAt: typeof position.quoteAt === 'string'
-            ? position.quoteAt
-            : null
-    };
+function canonical(value) {
+    const text = String(value).trim().replace(/\s+/g, ' ');
+    if (!text || text.length > 100) throw Error('Укажите название до 100 символов.');
+    const bond = text.match(/^офз[\s-]*(\d{5})(?:[\s-]*пд)?$/i);
+    if (bond) return 'ОФЗ-' + bond[1];
+    return ALIASES[text.toLowerCase()] || text.toUpperCase();
 }
 
-function readData(raw) {
-    const data = JSON.parse(raw);
-    const legacy = Array.isArray(data);
+function normalize(position) {
+    if (!position || typeof position !== 'object' || !ACCOUNTS[position.accId]) throw Error('Неизвестный счёт в данных.');
+    const kind = position.kind || (/^ОФЗ-|^SU\d/.test(position.name) ? 'bond' : 'share');
+    if (!['share', 'bond', 'fund', 'cash', 'gold', 'manual'].includes(kind)) throw Error('Неизвестный тип актива.');
+    
+    const name = kind === 'cash' ? 'RUB' : canonical(position.name);
+    const qty = num(position.qty, { positive: true, integer: ['share', 'bond', 'gold'].includes(kind) });
+    const price = kind === 'cash' ? 1 : num(position.price, { optional: true });
+    const cur = kind === 'cash' ? 1 : num(position.cur, { optional: true });
 
-    if (
-        !legacy &&
-        (data?.version !== 2 || !Array.isArray(data.portfolio))
-    ) {
-        throw Error('Неизвестный формат файла.');
-    }
+    const result = {
+        id: String(position.id || uid()), name, kind, accId: position.accId, qty, price, cur,
+        accrued: kind === 'bond' ? num(position.accrued, { optional: true }) : null,
+        source: String(position.source || '').slice(0, 300),
+        quoteAt: position.quoteAt && Number.isFinite(Date.parse(position.quoteAt)) ? new Date(position.quoteAt).toISOString() : null,
+        secid: typeof position.secid === 'string' ? position.secid : null
+    };
+    if (qty * Math.max(price || 0, cur || 0, result.accrued || 0) > Number.MAX_SAFE_INTEGER) throw Error('Сумма позиции слишком велика.');
+    return result;
+}
 
-    const rows = (legacy ? data : data.portfolio)
-        .map(position => normalize(position, legacy));
-
+function validate(data) {
+    if (!data || data.version !== 4 || !Array.isArray(data.positions) || data.positions.length > 10000) throw Error('Неподдерживаемый формат портфеля.');
+    const positions = data.positions.map(normalize);
     const ids = new Set();
-
-    for (const position of rows) {
-        if (ids.has(position.id)) position.id = uid();
+    for (const position of positions) {
+        if (ids.has(position.id)) throw Error('Повторяющийся ID записи.');
         ids.add(position.id);
     }
-
-    return rows;
+    return { version: 4, positions };
 }
 
-function commit(next) {
-    if (storageBlocked) {
-        notice(
-            'Сохранение заблокировано: сначала скачайте исходные данные ' +
-            'и восстановите корректную копию либо выполните сброс.'
-        );
-        return false;
-    }
+function decode(raw) {
+    const data = JSON.parse(raw);
+    if (data?.version === 4) return validate(data);
+    const rows = Array.isArray(data) ? data : data?.portfolio;
+    if (!Array.isArray(rows)) throw Error('Не найден массив позиций.');
+    return validate({
+        version: 4,
+        positions: rows.map(position => {
+            if (!position.accId) throw Error('В старой копии нет идентификаторов счетов. Нужна явная привязка счетов; данные не заменены.');
+            return { ...position, id: String(position.id || uid()), price: position.price === 0 ? null : position.price, cur: position.cur === 0 ? null : position.cur };
+        })
+    });
+}
 
+// ==================== ХРАНЕНИЕ ====================
+function load() {
     try {
-        const checked = next.map(position => normalize(position));
+        loadedRaw = localStorage.getItem(KEY);
+        if (loadedRaw !== null) { state = validate(JSON.parse(loadedRaw)); return; }
+        const legacy = localStorage.getItem('myPortfolio_v3');
+        if (legacy !== null) {
+            state = decode(legacy);
+            localStorage.setItem(KEY, JSON.stringify(state));
+            loadedRaw = localStorage.getItem(KEY);
+            notice('Данные версии 3 перенесены. Нулевые цены считаются неизвестными. Старый оригинал сохранён.');
+        }
+    } catch (error) {
+        blocked = true;
+        notice('Запись заблокирована: ' + error.message + ' Скачайте исходные данные в настройках.');
+    }
+}
 
-        localStorage.setItem(KEY, JSON.stringify({
-            version: 2,
-            portfolio: checked
-        }));
-
-        portfolio = checked;
+function commit(next, { recovery = false } = {}) {
+    if (locked) { notice('Сначала разблокируйте приложение.'); return false; }
+    try {
+        if (blocked && !recovery) throw Error('Хранилище заблокировано. Сначала восстановите корректную копию.');
+        const checked = validate({ version: 4, positions: next });
+        const raw = JSON.stringify(checked);
+        if (localStorage.getItem(KEY) !== loadedRaw) throw Error('Данные изменились в другой вкладке. Перезагрузите страницу.');
+        if (loadedRaw !== null) localStorage.setItem(PREV, loadedRaw);
+        localStorage.setItem(KEY, raw);
+        undo = clone(state); state = checked; loadedRaw = raw; blocked = false; $('undoBtn').hidden = false;
         render();
         return true;
     } catch (error) {
-        notice(
-            'Не сохранено: ' + error.message +
-            ' Проверьте доступ к хранилищу браузера.'
-        );
+        notice('Не сохранено: ' + error.message);
         return false;
     }
 }
 
-function el(tag, text, className) {
-    const element = document.createElement(tag);
-    if (text !== undefined) element.textContent = text;
-    if (className) element.className = className;
-    return element;
-}
-
-function stats(rows) {
-    let cost = 0;
-    let val = 0;
-    let knownCost = true;
-    let knownVal = true;
-    let estimated = 0;
-
+// ==================== РАСЧЕТЫ И ОТОБРАЖЕНИЕ ====================
+function totals(rows) {
+    let value = 0, cost = 0, clean = 0, missingPrice = 0, missingCost = 0, missingNKD = 0;
     for (const position of rows) {
-        if (position.price === null) {
-            knownCost = false;
-        } else {
-            cost += position.qty * position.price;
+        if (position.cur === null) { missingPrice++; } 
+        else {
+            clean += position.qty * position.cur;
+            value += position.qty * (position.cur + (position.kind === 'bond' ? position.accrued || 0 : 0));
         }
-
-        const current = position.cur ?? position.price;
-
-        if (current === null) {
-            knownVal = false;
-        } else {
-            val += position.qty * current;
-        }
-
-        if (position.cur === null && position.price !== null) {
-            estimated++;
-        }
+        if (position.price === null) { missingCost++; } 
+        else { cost += position.qty * position.price; }
+        if (position.kind === 'bond' && position.accrued === null) missingNKD++;
     }
-
-    return { cost, val, knownCost, knownVal, estimated };
+    return { value, cost, clean, missingPrice, missingCost, missingNKD };
 }
 
-function profitText(summary) {
-    if (!summary.knownCost || !summary.knownVal) {
-        return 'Прибыль не определена';
-    }
+const money = value => hiddenMoney ? '••••' : value.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 });
 
-    const diff = summary.val - summary.cost;
-    const percent = summary.cost > 0
-        ? count(diff / summary.cost * 100) + '%'
-        : 'база 0 ₽';
+// БАГФИКС: убираем лишние нули для акций (10,00000000 -> 10)
+const count = value => hiddenMoney ? '••' : value.toLocaleString('ru-RU', { maximumFractionDigits: 8 });
 
-    return `${diff > 0 ? '+' : ''}${money(diff)} (${percent})`;
+function gain(summary) {
+    if (summary.missingCost || summary.missingPrice) return 'Прибыль не определена';
+    const difference = summary.clean - summary.cost;
+    return (difference > 0 ? '+' : '') + money(difference) + (summary.cost > 0 ? ' · ' + (hiddenMoney ? '••' : (difference / summary.cost * 100).toFixed(2)) + '%' : ' · без процентной базы');
+}
+
+function filtered() {
+    return state.positions.filter(position => 
+        (! $('ownerFilter').value || ACCOUNTS[position.accId].owner === $('ownerFilter').value) &&
+        (! $('accountFilter').value || position.accId === $('accountFilter').value) &&
+        position.name.toLowerCase().includes($('search').value.trim().toLowerCase())
+    );
 }
 
 function render() {
-    const groups = new Map();
-
-    for (const position of portfolio) {
-        if (!groups.has(position.name)) {
-            groups.set(position.name, []);
-        }
-        groups.get(position.name).push(position);
-    }
-
-    const list = $('portfolioList');
-    list.replaceChildren();
-
-    for (const [name, rows] of groups) {
-        const summaryStats = stats(rows);
-        const qty = rows.reduce((total, position) => total + position.qty, 0);
-
-        const item = el('details', undefined, 'item');
-        const summary = el('summary');
-        const info = el('div', undefined, 'item-info');
-        const value = el('div', undefined, 'item-val');
-
-        const averagePrice = summaryStats.knownCost
-            ? money(summaryStats.cost / qty)
-            : 'неизвестна';
-
-        const owners = [...new Set(rows.map(position => position.owner))];
-
-        info.append(
-            el('b', name),
-            el('small', `${count(qty)} шт. • Ср. ${averagePrice}`),
-            el('div', owners.join(', '), 'muted')
-        );
-
-        const profitClass = summaryStats.knownCost && summaryStats.knownVal
-            ? (summaryStats.val >= summaryStats.cost ? 'green' : 'red')
-            : 'muted';
-
-        value.append(
-            el(
-                'b',
-                `${summaryStats.knownVal ? '' : 'от '}${money(summaryStats.val)}`
-            ),
-            el('div', profitText(summaryStats), profitClass)
-        );
-
-        summary.append(info, value);
-        item.append(summary);
-
-        for (const position of rows) {
-            const row = el('div', undefined, 'position');
-
-            const purchasePrice = position.price === null
-                ? 'неизвестна'
-                : money(position.price);
-
-            const currentPrice = position.cur === null
-                ? 'нет котировки'
-                : money(position.cur);
-
-            row.append(
-                el(
-                    'b',
-                    `${position.owner} • ${position.account || 'Счёт не указан'}`
-                ),
-                el(
-                    'div',
-                    `${count(position.qty)} шт. • Покупка: ${purchasePrice}` +
-                    ` • Цена: ${currentPrice}`,
-                    'muted'
-                )
-            );
-
-            if (position.quoteAt) {
-                row.append(el(
-                    'div',
-                    'Котировка получена: ' +
-                    new Date(position.quoteAt).toLocaleString('ru-RU'),
-                    'muted'
-                ));
-            }
-
-            const edit = el('button', 'Изменить', 'btn');
-            const remove = el('button', 'Удалить', 'btn red');
-
-            edit.onclick = () => openAddModal(position.id);
-
-            remove.onclick = () => {
-                if (confirm('Удалить эту позицию?')) {
-                    commit(portfolio.filter(p => p.id !== position.id));
-                }
-            };
-
-            row.append(edit, remove);
-            item.append(row);
-        }
-
-        list.append(item);
-    }
-
-    if (!portfolio.length) {
-        list.append(el(
-            'p',
-            'Портфель пуст. Добавьте актив вручную или загрузите скриншоты.',
-            'muted'
-        ));
-    }
-
-    const totals = stats(portfolio);
-
-    $('totalBalance').textContent =
-        (totals.knownVal ? '' : 'Учтено: ') + money(totals.val);
-
-    $('totalProfit').textContent = profitText(totals);
-
-    $('totalProfit').className = totals.knownVal && totals.knownCost
-        ? (totals.val >= totals.cost ? 'green' : 'red')
-        : 'muted';
-
-    $('valuationNote').textContent = [
-        !totals.knownVal
-            ? 'Общая сумма неполная: есть позиции без цены.'
-            : '',
-        !totals.knownCost
-            ? 'Для расчёта прибыли заполните цены покупки.'
-            : '',
-        totals.estimated
-            ? 'Часть позиций оценена по цене покупки, без рыночной котировки.'
-            : ''
+    const rows = filtered();
+    const summary = totals(rows);
+    $('scopeLabel').textContent = rows.length === state.positions.length ? 'Все счета · RUB' : 'Выбранные позиции · RUB';
+    $('balance').textContent = (summary.missingPrice ? 'Учтено: ' : '') + money(summary.value);
+    $('profit').textContent = gain(summary);
+    $('profit').className = summary.missingCost || summary.missingPrice ? 'muted' : summary.clean >= summary.cost ? 'green' : 'red';
+    
+    $('valueNote').textContent = [
+        summary.missingPrice ? `Без цены: ${summary.missingPrice}. Общая стоимость неполная.` : '',
+        summary.missingCost ? `Без цены покупки: ${summary.missingCost}.` : '',
+        summary.missingNKD ? 'НКД известен не для всех облигаций.' : '',
+        'Прибыль — изменение чистой цены; НКД включён только в стоимость.'
     ].filter(Boolean).join(' ');
-}
 
-function openModal(id) {
-    focusReturn = document.activeElement;
-    $(id).classList.add('open');
-    $(id).querySelector('input,select,button')?.focus();
-}
-
-function closeModal(id) {
-    $(id).classList.remove('open');
-    if (id === 'reviewModal') tempScanResults = [];
-    focusReturn?.focus();
-}
-
-function openAddModal(id = null) {
-    editingId = id;
-    const position = portfolio.find(p => p.id === id);
-
-    $('assetForm').reset();
-    $('addTitle').textContent = position
-        ? 'Изменить актив'
-        : 'Добавить актив';
-
-    const fields = [
-        ['newName', 'name'],
-        ['newQty', 'qty'],
-        ['newPrice', 'price'],
-        ['newCur', 'cur'],
-        ['newAccount', 'account'],
-        ['newKind', 'kind']
-    ];
-
-    if (position) {
-        for (const [field, key] of fields) {
-            $(field).value = position[key] ?? '';
-        }
-
-        const hasOwner = Array.from($('newOwner').options)
-            .some(option => option.value === position.owner);
-
-        if (!hasOwner) {
-            $('newOwner').add(new Option(position.owner, position.owner));
-        }
-
-        $('newOwner').value = position.owner;
+    const groups = new Map();
+    for (const position of rows) {
+        const key = position.kind + '|' + position.name;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(position);
     }
 
-    openModal('addModal');
-}
-
-function addManual(event) {
-    event.preventDefault();
-
-    try {
-        const old = portfolio.find(p => p.id === editingId);
-
-        const position = normalize({
-            id: editingId ?? uid(),
-            name: $('newName').value,
-            qty: $('newQty').value,
-            price: $('newPrice').value,
-            cur: $('newCur').value,
-            owner: $('newOwner').value,
-            account: $('newAccount').value,
-            kind: $('newKind').value
-        });
-
-        if (
-            old &&
-            old.name === position.name &&
-            old.cur === position.cur
-        ) {
-            position.quoteAt = old.quoteAt;
-        }
-
-        const next = editingId
-            ? portfolio.map(p => p.id === editingId ? position : p)
-            : [...portfolio, position];
-
-        if (commit(next)) {
-            closeModal('addModal');
-            notice('Сохранено.');
-        }
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-function clearData() {
-    if (!confirm(
-        'Удалить весь портфель? Сначала рекомендуется скачать копию.'
-    )) return;
-
-    const blocked = storageBlocked;
-    storageBlocked = false;
-
-    if (commit([])) {
-        $('storageWarning').textContent = '';
-        notice('Портфель очищен.');
-    } else {
-        storageBlocked = blocked;
-    }
-}
-
-function download(text, name) {
-    const url = URL.createObjectURL(new Blob(
-        [text],
-        { type: 'application/json' }
-    ));
-
-    const link = el('a');
-    link.href = url;
-    link.download = name;
-    link.click();
-
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-}
-
-function exportData() {
-    try {
-        const text = storageBlocked
-            ? (localStorage.getItem(KEY) ?? 'null')
-            : JSON.stringify({ version: 2, portfolio }, null, 2);
-
-        download(text, 'portfolio-backup.json');
-    } catch (error) {
-        notice('Не удалось скачать копию: ' + error.message);
-    }
-}
-
-async function importData(input) {
-    try {
-        const file = input.files[0];
-        if (!file) return;
-
-        if (file.size > 10 * 1024 * 1024) {
-            throw Error('Файл больше 10 МБ.');
-        }
-
-        const rows = readData(await file.text());
-
-        if (!confirm(
-            `Заменить портфель данными из копии (${rows.length} позиций)?`
-        )) return;
-
-        const blocked = storageBlocked;
-        storageBlocked = false;
-
-        if (commit(rows)) {
-            $('storageWarning').textContent = '';
-            notice('Копия восстановлена.');
-        } else {
-            storageBlocked = blocked;
-        }
-    } catch (error) {
-        notice('Не удалось восстановить: ' + error.message);
-    } finally {
-        input.value = '';
-    }
-}
-
-// Распознавание: только явные единицы.
-// Цена или номер облигации не подставляются вместо количества.
-const ALIASES = [
-    [/газпром\s*нефть/i, 'SIBN'],
-    [/сбер(?:банк)?\s*[-–]?\s*п(?=\s|$)/i, 'SBERP'],
-    [/сбер(?:банк)?\s*(?:ап|преф|привил)/i, 'SBERP'],
-    [/сургут(?:нефтегаз)?\s*(?:ап|преф|привил)/i, 'SNGSP'],
-    [/татнефть\s*(?:ап|преф|привил)/i, 'TATNP'],
-    [/ростелеком\s*(?:ап|преф|привил)/i, 'RTKMP'],
-    [/сбер(?:банк)?/i, 'SBER'],
-    [/втб/i, 'VTBR'],
-    [/газпром/i, 'GAZP'],
-    [/лукойл/i, 'LKOH'],
-    [/новатэк/i, 'NVTK'],
-    [/татнефть/i, 'TATN'],
-    [/транснефть/i, 'TRNFP'],
-    [/мосбиржа/i, 'MOEX'],
-    [/яндекс/i, 'YDEX'],
-    [/ростелеком/i, 'RTKM'],
-    [/аэрофлот/i, 'AFLT'],
-    [/сургут/i, 'SNGS'],
-    [/полюс/i, 'PLZL'],
-    [/норникель/i, 'GMKN'],
-    [/интер\s*рао/i, 'IRAO']
-];
-
-const KNOWN = new Set(ALIASES.map(pair => pair[1]).concat(['X5']));
-
-function parseText(text, source = 'Скриншот') {
-    const results = [];
-
-    for (const raw of text.split(/\r?\n/)) {
-        const line = raw.trim();
-        if (!line) continue;
-
-        const bond = line.match(/(?:ОФЗ[\s-]*)?(26\d{3})/i);
-        let name = null;
-
-        if (/офз/i.test(line)) {
-            name = bond ? 'ОФЗ-' + bond[1] : 'ОФЗ — УТОЧНИТЬ';
-        }
-
-        if (!name) {
-            const tokens = line.toUpperCase()
-                .match(/[A-Z][A-Z0-9]{1,11}/g) || [];
-
-            name = tokens.find(token => KNOWN.has(token)) ?? null;
-        }
-
-        if (!name) {
-            name = ALIASES.find(([regex]) => regex.test(line))?.[1] ?? null;
-        }
-
-        if (!name) continue;
-
-        const match = line.match(
-            /(?:^|[^\d.,])((?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+)(?:[.,]\d+)?)\s*(шт\.?|акци(?:я|и|й|ю)|лот(?:а|ов)?)(?=\s|$|[.,;])/i
-        );
-
-        let qty = '';
-
-        if (match && !/^лот/i.test(match[2])) {
-            qty = String(num(match[1]));
-        }
-
-        const warning = match && /^лот/i.test(match[2])
-            ? 'Указаны лоты: введите количество штук.'
-            : !qty
-                ? 'Количество не распознано: заполните вручную.'
-                : '';
-
-        results.push({
-            name,
-            qty,
-            price: '',
-            kind: name.startsWith('ОФЗ') ? 'manual' : 'share',
-            source,
-            line,
-            warning
-        });
-    }
-
-    return results;
-}
-
-let enginePromise = null;
-
-function loadEngine() {
-    if (globalThis.Tesseract) {
-        return Promise.resolve(globalThis.Tesseract);
-    }
-
-    if (enginePromise) return enginePromise;
-
-    enginePromise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-
-        const timer = setTimeout(
-            () => finish(Error('Истекло время загрузки OCR.')),
-            20000
-        );
-
-        function finish(error) {
-            clearTimeout(timer);
-            script.onload = null;
-            script.onerror = null;
-
-            if (error) {
-                script.remove();
-                enginePromise = null;
-                reject(error);
-            } else {
-                resolve(globalThis.Tesseract);
-            }
-        }
-
-        script.src =
-            'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
-
-        script.onload = () => globalThis.Tesseract
-            ? finish()
-            : finish(Error('OCR недоступен.'));
-
-        script.onerror = () => finish(
-            Error('Не удалось загрузить OCR. Проверьте интернет.')
-        );
-
-        document.head.append(script);
-    });
-
-    return enginePromise;
-}
-
-function startBatchOCR() {
-    if (!scanJob) $('fileInput').click();
-}
-
-function stopOCR() {
-    if (scanJob) {
-        scanJob.cancel();
-        notice(
-            'Распознавание отменено; результаты этой загрузки не добавлены.'
-        );
-    }
-}
-
-async function handleFiles(input) {
-    const files = Array.from(input.files ?? []);
-    input.value = '';
-
-    if (!files.length || scanJob) return;
-
-    if (files.some(file => file.size > 25 * 1024 * 1024)) {
-        notice('Один из файлов больше 25 МБ. Уменьшите его размер.');
-        return;
-    }
-
-    let worker = null;
-    let ended = false;
-    let timer;
-    let cancel;
-
-    const STOP = Symbol('stop');
-
-    const cancelled = new Promise(resolve => {
-        cancel = () => {
-            ended = true;
-            resolve(STOP);
-        };
-    });
-
-    const job = { cancel };
-    scanJob = job;
-    tempScanResults = [];
-
-    $('scanBtn').disabled = true;
-    $('ocrOverlay').classList.add('active');
-    $('stopBtn').focus();
-
-    const race = async (promise, milliseconds) => {
-        let timeout;
-
-        try {
-            return await Promise.race([
-                promise,
-                cancelled,
-                new Promise((_, reject) => {
-                    timeout = setTimeout(
-                        () => reject(Error('Превышено время ожидания OCR.')),
-                        milliseconds
-                    );
-                })
-            ]);
-        } finally {
-            clearTimeout(timeout);
-        }
-    };
-
-    try {
-        $('ocrStatus').textContent = 'Загрузка OCR (нужен интернет)…';
-
-        const engine = await race(loadEngine(), 25000);
-        if (engine === STOP) return;
-
-        const creating = engine.createWorker(
-            'rus+eng',
-            1,
-            { errorHandler: () => {} }
-        ).then(createdWorker => {
-            if (ended) {
-                Promise.resolve(createdWorker.terminate()).catch(() => {});
-                return STOP;
-            }
-
-            worker = createdWorker;
-            return createdWorker;
-        });
-
-        const ready = await race(creating, 90000);
-        if (ready === STOP) return;
-
-        let failed = 0;
-
-        for (let index = 0; index < files.length; index++) {
-            if (ended) return;
-
-            $('ocrStatus').textContent =
-                `Сканирование ${index + 1} из ${files.length}…`;
-
-            try {
-                const result = await race(
-                    worker.recognize(files[index]),
-                    90000
-                );
-
-                if (result === STOP) return;
-
-                tempScanResults.push(
-                    ...parseText(result.data.text, files[index].name)
-                );
-            } catch (error) {
-                failed++;
-
-                notice(
-                    `Не обработан файл ${files[index].name}: ${error.message}`
-                );
-                break;
-            }
-        }
-
-        if (tempScanResults.length) {
-            showReviewModal();
-
-            notice(
-                `Найдено строк: ${tempScanResults.length}. ` +
-                'Проверьте их перед добавлением.' +
-                (failed ? ' Обработка прервана; результаты неполные.' : '')
-            );
-        } else {
-            notice(
-                'Подходящие строки не найдены. Введите активы вручную ' +
-                'или используйте более чёткие скриншоты.'
-            );
-        }
-    } catch (error) {
-        notice('Ошибка OCR: ' + error.message);
-    } finally {
-        ended = true;
-
-        if (worker) {
-            try {
-                await Promise.race([
-                    Promise.resolve(worker.terminate()).catch(() => {}),
-                    new Promise(resolve => {
-                        timer = setTimeout(resolve, 1500);
-                    })
-                ]);
-            } finally {
-                clearTimeout(timer);
-            }
-        }
-
-        if (scanJob === job) {
-            scanJob = null;
-            $('scanBtn').disabled = false;
-            $('ocrOverlay').classList.remove('active');
-
-            if ($('reviewModal').classList.contains('open')) {
-                $('reviewOwner').focus();
-            } else {
-                $('scanBtn').focus();
-            }
-        }
-    }
-}
-
-function reviewInput(row, key, value, labelText) {
-    const label = el('label', labelText);
-    const input = el('input');
-
-    input.value = value;
-    input.dataset.field = key;
-
-    if (key !== 'name') input.inputMode = 'decimal';
-
-    label.append(input);
-    row.append(label);
-
-    return input;
-}
-
-function showReviewModal() {
-    const list = $('reviewList');
+    const list = $('list');
     list.replaceChildren();
+    const sortedGroups = [...groups.values()].sort((a, b) => a[0].name.localeCompare(b[0].name, 'ru'));
 
-    const seen = new Set();
+    for (const entries of sortedGroups) {
+        const first = entries[0];
+        const details = el('details');
+        const heading = el('summary');
+        const left = el('div');
+        const right = el('div', undefined, 'right');
+        const groupTotal = totals(entries);
 
-    for (const result of tempScanResults) {
-        const row = el('div', undefined, 'review-row');
-        const label = el('label');
-        const check = el('input');
-
-        check.type = 'checkbox';
-        check.dataset.field = 'selected';
-
-        const signature = result.name + '|' + result.qty;
-
-        const duplicate = seen.has(signature) || portfolio.some(
-            position =>
-                position.name === result.name &&
-                String(position.qty) === result.qty
+        left.append(
+            el('strong', first.kind === 'cash' ? 'Наличные · рубли' : first.name),
+            el('small', count(entries.reduce((sum, p) => sum + p.qty, 0)) + (first.kind === 'cash' ? ' ₽' : ' шт.') + ' · ' + new Set(entries.map(p => p.accId)).size + ' счёт(а) ▾')
         );
 
-        seen.add(signature);
-        check.checked = !duplicate;
-
-        label.append(
-            check,
-            document.createTextNode(' Добавить эту строку')
+        right.append(
+            el('strong', (groupTotal.missingPrice ? 'от ' : '') + money(groupTotal.value)),
+            el('small', gain(groupTotal))
         );
 
-        row.append(
-            label,
-            el('p', result.source + ': ' + result.line, 'muted')
-        );
+        heading.append(left, right);
+        details.append(heading);
 
-        if (result.warning || duplicate) {
-            row.append(el(
-                'p',
-                [
-                    result.warning,
-                    duplicate ? 'Возможный повтор: сверяйте со счётом.' : ''
-                ].filter(Boolean).join(' '),
-                'red'
-            ));
-        }
-
-        reviewInput(row, 'name', result.name, 'Тикер / название');
-        reviewInput(row, 'qty', result.qty, 'Количество штук');
-        reviewInput(
-            row,
-            'price',
-            '',
-            'Цена покупки за штуку, ₽ (необязательно)'
-        );
-
-        list.append(row);
-    }
-
-    openModal('reviewModal');
-}
-
-function assignTo() {
-    try {
-        const items = [];
-
-        for (const row of $('reviewList').children) {
-            const get = field =>
-                row.querySelector(`[data-field="${field}"]`);
-
-            if (!get('selected').checked) continue;
-
-            const name = get('name').value;
-
-            items.push(normalize({
-                id: uid(),
-                name,
-                qty: get('qty').value,
-                price: get('price').value,
-                cur: null,
-                owner: $('reviewOwner').value,
-                account: $('reviewAccount').value,
-                kind: /^[A-Za-z][A-Za-z0-9]{0,11}$/.test(name.trim())
-                    ? 'share'
-                    : 'manual'
-            }));
-        }
-
-        if (!items.length) {
-            throw Error('Выберите хотя бы одну строку.');
-        }
-
-        if (commit([...portfolio, ...items])) {
-            closeModal('reviewModal');
-
-            notice(
-                `Добавлено позиций: ${items.length}. ` +
-                'Неизвестная цена покупки не считается нулевой.'
+        for (const position of entries) {
+            const account = ACCOUNTS[position.accId];
+            const row = el('div', undefined, 'position');
+            row.append(
+                el('strong', account.owner + ' · ' + account.name),
+                el('small', count(position.qty) + (position.kind === 'cash' ? ' ₽' : ' шт.') + ' · Покупка: ' + (position.price === null ? 'неизвестна' : money(position.price)) + ' · Цена: ' + (position.cur === null ? 'неизвестна' : money(position.cur)))
             );
+
+            if (position.kind === 'bond') {
+                row.append(el('small', 'НКД: ' + (position.accrued === null ? 'неизвестен' : money(position.accrued))));
+            }
+
+            row.append(el('small', position.quoteAt ? 'Оценка: ' + new Date(position.quoteAt).toLocaleString('ru-RU') + (Date.now() - Date.parse(position.quoteAt) > 86400000 ? ' · сохранённая цена' : '') : 'Дата котировки неизвестна'));
+            if (position.source) row.append(el('small', position.source));
+
+            const button = el('button', 'Изменить запись');
+            button.addEventListener('click', () => openEdit(position.id));
+            row.append(button);
+            details.append(row);
         }
-    } catch (error) {
-        alert(error.message);
+        list.append(details);
+    }
+
+    if (!rows.length) list.append(el('div', state.positions.length ? 'Нет позиций по этому фильтру' : 'Добавьте актив или восстановите JSON-копию.', 'empty'));
+}
+
+// ==================== ФОРМЫ ====================
+function open(id) { if (locked) return; $(id).showModal(); }
+function close(id) { $(id).close(); }
+
+function options(select, all = false) {
+    select.replaceChildren();
+    if (all) { const option = el('option', 'Все счета'); option.value = ''; select.append(option); }
+    for (const [id, account] of Object.entries(ACCOUNTS)) {
+        const option = el('option', account.owner + ' · ' + account.name);
+        option.value = id;
+        select.append(option);
     }
 }
 
-function cell(block, column) {
-    if (
-        !Array.isArray(block?.columns) ||
-        !Array.isArray(block?.data) ||
-        !Array.isArray(block.data[0])
-    ) {
-        return null;
+function fields() {
+    const kind = $('kind').value;
+    $('priceFields').hidden = kind === 'cash';
+    $('bondFields').hidden = kind !== 'bond';
+    $('sourceFields').hidden = !['gold', 'manual', 'fund'].includes(kind);
+    $('name').disabled = kind === 'cash';
+    if (kind === 'cash') $('name').value = 'RUB';
+    $('qtyLabel').firstChild.textContent = kind === 'cash' ? 'Сумма, ₽' : 'Количество, шт.';
+}
+
+function openEdit(id = null, kind = 'share') {
+    editing = id;
+    $('assetForm').reset();
+    $('formError').hidden = true;
+    const position = state.positions.find(p => p.id === id);
+    $('editTitle').textContent = position ? 'Изменить запись' : 'Добавить актив';
+    $('deleteBtn').hidden = !position;
+    $('kind').value = position?.kind || kind;
+
+    for (const [field, key] of [['acc', 'accId'], ['name', 'name'], ['qty', 'qty'], ['cost', 'price'], ['current', 'cur'], ['accrued', 'accrued'], ['source', 'source']]) {
+        if (position) $(field).value = position[key] ?? '';
     }
 
-    const index = block.columns.indexOf(column);
-    return index < 0 ? null : block.data[0][index];
+    if (!position && kind === 'gold') $('name').value = 'Георгий Победоносец 7,78 г';
+    fields();
+    open('editDialog');
+}
+
+$('assetForm').addEventListener('submit', event => {
+    event.preventDefault();
+    try {
+        const old = state.positions.find(p => p.id === editing);
+        const kind = $('kind').value;
+        const position = normalize({
+            id: editing || uid(), name: $('name').value, accId: $('acc').value, kind,
+            qty: $('qty').value, price: $('cost').value, cur: $('current').value,
+            accrued: $('accrued').value, source: $('source').value
+        });
+        const same = old && position.name === old.name && position.kind === old.kind;
+        if (same) position.secid = old.secid;
+        position.quoteAt = same && position.cur === old.cur && position.accrued === old.accrued ? old.quoteAt : position.cur !== null ? new Date().toISOString() : null;
+        if (!same || position.cur !== old?.cur) position.source = position.source || 'Ручная оценка';
+        
+        const next = old ? state.positions.map(p => p.id === old.id ? position : p) : [...state.positions, position];
+        if (commit(next)) { close('editDialog'); notice('Запись сохранена. Другие покупки не изменены.'); }
+    } catch (error) {
+        $('formError').textContent = error.message;
+        $('formError').hidden = false;
+    }
+});
+
+$('deleteBtn').onclick = () => {
+    if (!confirm('Удалить только эту запись?')) return;
+    if (commit(state.positions.filter(p => p.id !== editing))) { close('editDialog'); notice('Запись удалена. Можно отменить.'); }
+};
+
+// ==================== РЕЗЕРВНЫЕ КОПИИ ====================
+function download(data, name) {
+    const anchor = el('a');
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    anchor.href = url; anchor.download = name;
+    document.body.append(anchor); anchor.click(); anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function backup() { download(JSON.stringify(state, null, 2), 'portfolio-' + new Date().toISOString().slice(0, 10) + '.json'); }
+
+$('restoreFile').onchange = async event => {
+    try {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 10e6) throw Error('Файл больше 10 МБ.');
+        const next = decode(await file.text());
+        const accepted = confirm('Заменить текущий портфель: ' + next.positions.length + ' записей? Предыдущая версия сохранится.');
+        if (accepted && commit(next.positions, { recovery: true })) { notice('Копия восстановлена.'); close('settingsDialog'); }
+    } catch (error) { notice('Не восстановлено: ' + error.message); } finally { event.target.value = ''; }
+};
+
+// ==================== КОТИРОВКИ MOEX ====================
+async function jsonFetch(url, ms = 12000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw Error('HTTP ' + response.status);
+        return await response.json();
+    } finally { clearTimeout(timer); }
+}
+
+function table(block) {
+    if (!block || !Array.isArray(block.columns) || !Array.isArray(block.data)) return [];
+    return block.data.map(row => Object.fromEntries(block.columns.map((column, index) => [column, row[index]])));
+}
+
+async function quote(position) {
+    let secid = position.secid || position.name;
+    const market = position.kind === 'bond' ? 'bonds' : 'shares';
+    
+    // БАГФИКС: Для корпоративных облигаций используем TQCB, для ОФЗ — TQOB
+    let board = 'TQBR';
+    if (position.kind === 'bond') {
+        board = /^SU|^ОФЗ-/.test(position.name) ? 'TQOB' : 'TQCB';
+    }
+
+    if (position.kind === 'bond' && /^ОФЗ-\d{5}$/.test(position.name)) {
+        const number = position.name.slice(4);
+        const search = await jsonFetch('https://iss.moex.com/iss/securities.json?q=' + encodeURIComponent(number) + '&iss.meta=off');
+        const candidates = table(search.securities).filter(item => new RegExp('^SU' + number + '[A-Z0-9]+$').test(item.secid));
+        if (candidates.length !== 1) throw Error('Не найден однозначный выпуск');
+        secid = candidates[0].secid;
+    }
+
+    if (!/^[A-Z0-9]{1,20}$/.test(secid)) throw Error('Нужен биржевой тикер');
+
+    const data = await jsonFetch(`https://iss.moex.com/iss/engines/stock/markets/${market}/boards/${board}/securities/${encodeURIComponent(secid)}.json?iss.meta=off&iss.only=securities,marketdata`);
+    const security = table(data.securities).find(item => item.SECID === secid);
+    const marketdata = table(data.marketdata).find(item => item.SECID === secid) || {};
+    
+    if (!security) throw Error('Нет инструмента на выбранном режиме');
+
+    const currency = position.kind === 'bond' ? security.FACEUNIT : security.CURRENCYID;
+    if (!['SUR', 'RUB', 'RUR'].includes(currency)) throw Error('Не подтверждена рублёвая цена');
+
+    const price = [marketdata.LAST, marketdata.WAPRICE, security.PREVPRICE].find(value => typeof value === 'number' && Number.isFinite(value) && value > 0);
+    if (price === undefined) throw Error('Нет цены');
+
+    let cur = price, accrued = null;
+    if (position.kind === 'bond') {
+        if (!(typeof security.FACEVALUE === 'number' && security.FACEVALUE > 0)) throw Error('Нет номинала');
+        cur = price * security.FACEVALUE / 100;
+        accrued = typeof security.ACCRUEDINT === 'number' && security.ACCRUEDINT >= 0 ? security.ACCRUEDINT : null;
+    }
+
+    const priceType = price === marketdata.LAST ? 'последняя сделка' : price === marketdata.WAPRICE ? 'средневзвешенная' : 'предыдущее закрытие';
+    return { cur, accrued, secid, quoteAt: new Date().toISOString(), source: 'MOEX · ' + priceType + ' · получено ' + new Date().toLocaleString('ru-RU') };
 }
 
 async function updatePrices() {
-    if (updating) return;
+    if (quoteBusy || locked) return;
+    quoteBusy = true;
+    $('pricesBtn').disabled = true;
 
-    const names = [...new Set(
-        portfolio
-            .filter(position =>
-                position.kind === 'share' &&
-                /^[A-Z][A-Z0-9]{0,11}$/.test(position.name)
-            )
-            .map(position => position.name)
-    )];
-
-    if (!names.length) {
-        notice(
-            'Нет акций для обновления TQBR. ' +
-            'Другие активы редактируются вручную.'
-        );
-        return;
-    }
-
-    updating = true;
-
-    const button = $('pricesBtn');
-    button.disabled = true;
-    button.textContent = 'Загрузка…';
-
-    const quotes = new Map();
-    const errors = [];
+    const failures = [];
+    const updates = new Map();
+    const candidates = [...new Map(state.positions.filter(p => ['share', 'bond'].includes(p.kind)).map(p => [p.kind + '|' + p.name, p])).values()];
 
     try {
-        for (const name of names) {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 12000);
-
+        for (let index = 0; index < candidates.length; index++) {
+            const position = candidates[index];
+            $('pricesBtn').textContent = `${index + 1}/${candidates.length}`;
             try {
-                const url =
-                    'https://iss.moex.com/iss/engines/stock/markets/shares/' +
-                    'boards/TQBR/securities/' +
-                    encodeURIComponent(name) +
-                    '.json?iss.meta=off&iss.only=marketdata,securities';
-
-                const response = await fetch(url, {
-                    signal: controller.signal
-                });
-
-                if (!response.ok) {
-                    throw Error('HTTP ' + response.status);
-                }
-
-                const data = await response.json();
-                const currency = cell(data.securities, 'CURRENCYID');
-
-                if (
-                    currency !== null &&
-                    !['SUR', 'RUB'].includes(currency)
-                ) {
-                    throw Error('Валюта не RUB');
-                }
-
-                const price = cell(data.marketdata, 'LAST');
-
-                if (
-                    typeof price !== 'number' ||
-                    !Number.isFinite(price) ||
-                    price <= 0
-                ) {
-                    throw Error('Нет цены LAST');
-                }
-
-                quotes.set(name, {
-                    price,
-                    at: new Date().toISOString()
-                });
+                updates.set(position.kind + '|' + position.name, await quote(position));
             } catch (error) {
-                errors.push(
-                    name + ': ' +
-                    (error.name === 'AbortError' ? 'тайм-аут' : error.message)
-                );
-            } finally {
-                clearTimeout(timeout);
+                failures.push(position.name + ': ' + error.message);
             }
         }
 
-        let saved = true;
+        if (updates.size) {
+            const next = state.positions.map(position => {
+                const key = position.kind + '|' + position.name;
+                return updates.has(key) ? { ...position, ...updates.get(key) } : position;
+            });
+            if (!commit(next)) return;
+        }
 
-        if (quotes.size) {
-            saved = commit(portfolio.map(position => {
-                const quote = position.kind === 'share'
-                    ? quotes.get(position.name)
-                    : null;
+        notice(candidates.length ? `Обновлено ${updates.size} из ${candidates.length}.` + (failures.length ? ' Прежние цены сохранены:\n' + failures.join('\n') : '') : 'Нет акций или облигаций для обновления.');
+    } finally {
+        quoteBusy = false;
+        $('pricesBtn').disabled = false;
+        $('pricesBtn').textContent = '↻ Цены';
+    }
+}
 
-                return quote
-                    ? {
-                        ...position,
-                        cur: quote.price,
-                        quoteAt: quote.at
-                    }
-                    : position;
+// ==================== РАСПОЗНАВАНИЕ (OCR) ====================
+let enginePromise = null;
+function loadOCR() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (enginePromise) return enginePromise;
+    enginePromise = new Promise((resolve, reject) => {
+        const script = el('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+        const timer = setTimeout(() => { script.remove(); enginePromise = null; reject(Error('Движок не загрузился. Проверьте интернет.')); }, 20000);
+        script.onload = () => { clearTimeout(timer); resolve(window.Tesseract); };
+        script.onerror = () => { clearTimeout(timer); script.remove(); enginePromise = null; reject(Error('Нет доступа к движку OCR.')); };
+        document.head.append(script);
+    });
+    return enginePromise;
+}
+
+function detect(line) {
+    const lower = line.toLowerCase();
+    const bond = lower.match(/офз[\s-]*(\d{5})/);
+    if (bond) return 'ОФЗ-' + bond[1];
+
+    const ticker = line.match(/\b(?:SBERP|SBER|VTBR|GAZP|SIBN|LKOH|NVTK|TATNP|TATN|TRNFP|MOEX|YDEX|RTKMP|RTKM|AFLT|SNGSP|SNGS|PLZL|GMKN|IRAO|X5|DOMRF)\b/);
+    if (ticker) return ticker[0];
+
+    const sortedAliases = Object.entries(ALIASES).sort((a, b) => b[0].length - a[0].length);
+    for (const [alias, symbol] of sortedAliases) {
+        const index = lower.indexOf(alias);
+        if (index >= 0 && !/[а-яa-z]/i.test(lower[index - 1] || '') && !/[а-яa-z]/i.test(lower[index + alias.length] || '')) return symbol;
+    }
+    return null;
+}
+
+function parseOCR(text, source, url) {
+    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    const results = [];
+
+    for (let index = 0; index < lines.length; index++) {
+        const name = detect(lines[index]);
+        if (!name) continue;
+        let block = lines[index];
+        for (let next = index + 1; next < Math.min(index + 3, lines.length) && !detect(lines[next]); next++) block += '\n' + lines[next];
+
+        const matches = [...block.matchAll(/(\d+(?:[ \u00a0\u202f]\d{3})*(?:[.,]\d+)?)\s*(штук|шт\.?|акц\.?|лот(?:ов|а)?)(?![а-я])/gi)];
+        const match = matches.length === 1 ? matches[0] : null;
+        let qty = '';
+        if (match && !match[2].toLowerCase().startsWith('лот')) qty = match[1];
+
+        const errors = [];
+        if (!match) errors.push(matches.length > 1 ? 'Несколько количеств' : 'Количество не найдено');
+        if (match && match[2].toLowerCase().startsWith('лот')) errors.push('Указаны лоты: введите количество в штуках');
+        if (/преф|привил|\bап\b/i.test(block) && !['SBERP', 'TATNP', 'SNGSP', 'RTKMP', 'TRNFP'].includes(name)) errors.push('Проверьте тип акции');
+        if (qty) { try { num(qty, { positive: true, integer: true }); } catch { errors.push('Проверьте дробное или неверное количество'); } }
+
+        results.push({ name, qty, source, url, block, errors });
+    }
+    return results;
+}
+
+function clearReview() {
+    scanRows = []; $('review').replaceChildren();
+    for (const url of scanURLs) URL.revokeObjectURL(url);
+    scanURLs = []; $('applyScan').disabled = true;
+}
+
+function renderReview() {
+    const list = $('review'); list.replaceChildren();
+    const counts = new Map();
+    for (const row of scanRows) counts.set(row.name, (counts.get(row.name) || 0) + 1);
+
+    for (const row of scanRows) {
+        const box = el('div', undefined, 'review');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox'; checkbox.dataset.field = 'selected';
+        checkbox.checked = !row.errors.length && counts.get(row.name) === 1;
+        const title = el('label', undefined, 'inline'); title.append(checkbox, el('b', row.name));
+        box.append(title, el('small', row.source));
+        if (row.url) { const image = el('img'); image.src = row.url; image.alt = 'Исходный скриншот'; box.append(image); }
+
+        const notes = [...row.errors, ...(counts.get(row.name) > 1 ? ['Повтор бумаги: оставьте одну строку и сверяйте снимки.'] : [])];
+        if (notes.length) box.append(el('p', notes.join('. '), 'red'));
+
+        for (const [field, titleText, value] of [['name', 'Название / тикер', row.name], ['qty', 'Количество в штуках', row.qty], ['price', 'Средняя цена покупки, ₽ · необязательно', ''], ['cur', 'Текущая цена, ₽ · необязательно', '']]) {
+            const label = el('label', titleText);
+            const input = el('input'); input.dataset.field = field; input.value = value;
+            if (field !== 'name') input.inputMode = 'decimal';
+            label.append(input); box.append(label);
+        }
+
+        const details = el('details'); details.append(el('summary', 'Распознанный фрагмент'), el('pre', row.block));
+        box.append(details); list.append(box);
+    }
+
+    $('applyScan').disabled = !scanRows.length;
+    $('scanStatus').textContent = `Найдено кандидатов: ${scanRows.length}. Не найденные бумаги можно добавить вручную.`;
+}
+
+$('images').onchange = async event => {
+    if (scanJob) return;
+    const files = [...event.target.files];
+    if (!files.length) return;
+
+    if (files.length > 30 || files.some(file => file.size > 20e6) || files.reduce((sum, file) => sum + file.size, 0) > 150e6) {
+        $('scanStatus').textContent = 'Не более 30 изображений, 20 МБ на файл и 150 МБ суммарно.';
+        event.target.value = ''; return;
+    }
+
+    clearReview();
+    const job = { cancelled: false, worker: null }; scanJob = job;
+    $('images').disabled = true; $('scanAcc').disabled = true; $('cancelScan').hidden = false;
+
+    try {
+        $('scanStatus').textContent = 'Загрузка движка…';
+        const engine = await loadOCR();
+        if (job.cancelled) return;
+        job.worker = await engine.createWorker('rus+eng');
+
+        for (let index = 0; index < files.length && !job.cancelled; index++) {
+            $('scanStatus').textContent = `Распознавание ${index + 1} из ${files.length}…`;
+            const result = await job.worker.recognize(files[index]);
+            if (job.cancelled) break;
+            const url = URL.createObjectURL(files[index]); scanURLs.push(url);
+            scanRows.push(...parseOCR(result.data.text, files[index].name, url));
+        }
+    } catch (error) {
+        if (!job.cancelled) $('scanStatus').textContent = 'Ошибка OCR: ' + error.message;
+    } finally {
+        if (job.worker) { try { await job.worker.terminate(); } catch {} }
+        scanJob = null; $('images').disabled = false; $('scanAcc').disabled = false; $('cancelScan').hidden = true; event.target.value = '';
+
+        if (job.cancelled) { clearReview(); $('scanStatus').textContent = 'Распознавание отменено. Портфель не изменён.'; } 
+        else if (scanRows.length) renderReview();
+        else if (!$('scanStatus').textContent.startsWith('Ошибка')) $('scanStatus').textContent = 'Однозначные позиции не найдены. Попробуйте более чёткие снимки или ручной ввод.';
+    }
+};
+
+$('cancelScan').onclick = () => { if (scanJob) { scanJob.cancelled = true; $('scanStatus').textContent = 'Отмена после текущего изображения…'; } };
+$('closeScan').onclick = () => { if (scanJob) { $('cancelScan').click(); return; } clearReview(); close('scanDialog'); };
+$('scanDialog').addEventListener('cancel', event => { if (scanJob) { event.preventDefault(); $('cancelScan').click(); } else { clearReview(); } });
+
+function applySnapshots(base, items, mode) {
+    const keys = new Set();
+    for (const position of items) {
+        const key = position.kind + '|' + position.name + '|' + position.accId;
+        if (keys.has(key)) throw Error('Повтор ' + position.name + ': выберите только один остаток на счёт.');
+        keys.add(key);
+    }
+
+    let next = clone(base);
+    for (const position of items) {
+        const old = next.filter(item => item.name === position.name && item.kind === position.kind && item.accId === position.accId);
+        if (old.length && mode === 'add') throw Error(position.name + ' уже есть на счёте. Используйте замену остатков.');
+        
+        if (old.length) {
+            const oldQty = old.reduce((sum, item) => sum + item.qty, 0);
+            if (position.price === null && oldQty === position.qty && old.every(item => item.price !== null)) {
+                position.price = old.reduce((sum, item) => sum + item.qty * item.price, 0) / oldQty;
+            }
+            if (position.cur === null) {
+                const latest = old.filter(item => item.cur !== null).sort((a, b) => (Date.parse(b.quoteAt) || 0) - (Date.parse(a.quoteAt) || 0))[0];
+                if (latest) {
+                    position.cur = latest.cur; position.quoteAt = latest.quoteAt;
+                    position.accrued = latest.accrued; position.source = latest.source;
+                }
+            }
+            next = next.filter(item => !(item.name === position.name && item.kind === position.kind && item.accId === position.accId));
+        }
+        next.push(position);
+    }
+    return next;
+}
+
+$('applyScan').onclick = () => {
+    try {
+        const items = [];
+        for (const row of $('review').children) {
+            const field = name => row.querySelector('[data-field="' + name + '"]');
+            if (!field('selected').checked) continue;
+            const name = canonical(field('name').value);
+            const kind = name.startsWith('ОФЗ-') || /^SU\d/.test(name) ? 'bond' : 'share';
+            items.push(normalize({
+                id: uid(), name, kind, qty: field('qty').value, price: field('price').value, cur: field('cur').value, accId: $('scanAcc').value, source: 'Импорт скриншота'
             }));
         }
 
-        if (saved) {
-            notice(
-                `Обновлено бумаг: ${quotes.size} из ${names.length}.` +
-                (
-                    errors.length
-                        ? ' Старые оценки сохранены для: ' +
-                          errors.join('; ') + '.'
-                        : ''
-                ) +
-                ' Облигации и другие ручные активы не обновляются.'
-            );
+        if (!items.length) throw Error('Выберите хотя бы одну проверенную позицию.');
+
+        const next = applySnapshots(state.positions, items, $('importMode').value);
+        if ($('importMode').value === 'replace' && !confirm('Заменить остатки ' + items.length + ' выбранных бумаг? Остальные бумаги сохранятся.')) return;
+
+        if (commit(next)) {
+            clearReview(); close('scanDialog');
+            notice('Импортировано ' + items.length + ' позиций. Неизвестные цены не считаются нулевыми.');
         }
-    } finally {
-        updating = false;
-        button.disabled = false;
-        button.textContent = '↻ Цены';
-    }
+    } catch (error) { $('scanStatus').textContent = error.message; }
+};
+
+// ==================== PIN И БЕЗОПАСНОСТЬ ====================
+const hex = bytes => Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+
+async function digest(pin, salt) {
+    if (!crypto.subtle) throw Error('Для PIN нужен HTTPS или localhost.');
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(salt), iterations: 210000, hash: 'SHA-256' }, key, 256);
+    return hex(new Uint8Array(bits));
 }
 
-// Обработчики интерфейса.
-$('addBtn').onclick = () => openAddModal();
-$('assetForm').onsubmit = addManual;
-$('scanBtn').onclick = startBatchOCR;
-$('fileInput').onchange = event => handleFiles(event.target);
-$('stopBtn').onclick = stopOCR;
-$('assignBtn').onclick = assignTo;
-$('pricesBtn').onclick = updatePrices;
-$('clearBtn').onclick = clearData;
-$('exportBtn').onclick = exportData;
-$('importBtn').onclick = () => $('backupInput').click();
-$('backupInput').onchange = event => importData(event.target);
-
-for (const button of document.querySelectorAll('[data-close]')) {
-    button.onclick = () => closeModal(button.dataset.close);
-}
-
-// Управление модальными окнами с клавиатуры.
-document.addEventListener('keydown', event => {
-    const dialog =
-        document.querySelector('.overlay.active') ||
-        document.querySelector('.modal.open');
-
-    if (!dialog) return;
-
-    if (event.key === 'Escape') {
-        if (scanJob) stopOCR();
-        else closeModal(dialog.id);
-    }
-
-    if (event.key === 'Tab') {
-        const nodes = Array.from(
-            dialog.querySelectorAll('input,select,button')
-        ).filter(node => !node.disabled);
-
-        const first = nodes[0];
-        const last = nodes.at(-1);
-
-        if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first?.focus();
-        }
-    }
-});
-
-function init() {
+function loadAuth() {
     try {
-        const raw = localStorage.getItem(KEY);
-        portfolio = raw === null ? [] : readData(raw);
-
-        if (raw && Array.isArray(JSON.parse(raw))) {
-            notice(
-                'Старые данные прочитаны. Прежние нулевые цены помечены ' +
-                'как неизвестные; проверьте их и тип бумаги. ' +
-                'Скачайте копию перед изменениями.'
-            );
+        const raw = localStorage.getItem(AUTH);
+        if (raw) {
+            const settings = JSON.parse(raw);
+            if (!settings || typeof settings.hash !== 'string' || !/^[a-f0-9]{64}$/.test(settings.hash) || typeof settings.salt !== 'string') throw Error('Повреждены настройки PIN');
+            auth = settings;
+        } else {
+            const legacy = JSON.parse(localStorage.getItem('portfolio_auth') || 'null');
+            if (legacy?.protected) {
+                const pin = localStorage.getItem('portfolio_pin');
+                if (legacy.hasPin && /^\d{4}$/.test(pin || '')) auth = { legacy: true }; else auth = { unavailable: true };
+            }
         }
-    } catch (error) {
-        storageBlocked = true;
-
-        $('storageWarning').textContent =
-            'Не удалось прочитать сохранённые данные. ' +
-            'Исходная запись не изменена. ' +
-            'Скачайте копию перед восстановлением или сбросом. ' +
-            error.message;
-    }
-
-    render();
+    } catch { auth = { unavailable: true }; }
 }
 
-// Обновить отображение, если данные изменены в другой вкладке.
-window.addEventListener('storage', event => {
-    if (event.key === KEY) location.reload();
+function lock() {
+    if (!auth) return;
+    locked = true;
+    for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
+    if (scanJob) scanJob.cancelled = true;
+    $('app').hidden = true; $('lock').hidden = false; $('unlockPin').value = '';
+    $('lockError').textContent = auth.unavailable ? 'Настройки старой защиты недоступны. Откройте старую версию на том же адресе, разблокируйте её и отключите защиту перед переходом. Данные не изменены.' : '';
+}
+
+async function verifyPIN(pin) {
+    if (!auth) return true;
+    if (auth.unavailable) throw Error('Нет доступного PIN.');
+    if (auth.legacy) return pin === localStorage.getItem('portfolio_pin');
+    return (await digest(pin, auth.salt)) === auth.hash;
+}
+
+async function newAuth(pin) {
+    const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
+    return { salt, hash: await digest(pin, salt), attempts: 0, until: 0 };
+}
+
+$('unlockForm').onsubmit = async event => {
+    event.preventDefault();
+    const button = event.submitter; button.disabled = true;
+    try {
+        if ((auth.until || 0) > Date.now()) throw Error('Подождите ' + Math.ceil((auth.until - Date.now()) / 1000) + ' сек.');
+        if (await verifyPIN($('unlockPin').value)) {
+            if (auth.legacy) {
+                const settings = await newAuth($('unlockPin').value);
+                localStorage.setItem(AUTH, JSON.stringify(settings));
+                localStorage.removeItem('portfolio_pin'); localStorage.removeItem('portfolio_auth');
+                auth = settings;
+            } else { auth.attempts = 0; auth.until = 0; localStorage.setItem(AUTH, JSON.stringify(auth)); }
+            locked = false; $('lock').hidden = true; $('app').hidden = false; $('unlockPin').value = ''; render();
+        } else {
+            auth.attempts = (auth.attempts || 0) + 1;
+            if (auth.attempts >= 5) { auth.until = Date.now() + 60000; auth.attempts = 0; }
+            if (!auth.legacy) localStorage.setItem(AUTH, JSON.stringify(auth));
+            throw Error('Неверный PIN' + (auth.until > Date.now() ? '. Повтор через минуту.' : '.'));
+        }
+    } catch (error) { $('lockError').textContent = error.message; $('unlockPin').value = ''; } finally { button.disabled = false; }
+};
+
+$('pinSetup').onsubmit = async event => {
+    event.preventDefault(); event.submitter.disabled = true;
+    try {
+        if (auth && !(await verifyPIN($('oldPin').value))) throw Error('Неверный текущий PIN');
+        const pin = $('newPin').value;
+        if (!/^\d{6,12}$/.test(pin) || pin !== $('repeatPin').value) throw Error('Нужны 6–12 цифр и совпадающий повтор.');
+        const settings = await newAuth(pin);
+        localStorage.setItem(AUTH, JSON.stringify(settings)); auth = settings;
+        $('pinSetup').reset(); $('pinInfo').textContent = 'PIN установлен. Это блокировка интерфейса, без шифрования.';
+    } catch (error) { $('pinInfo').textContent = error.message; } finally { event.submitter.disabled = false; }
+};
+
+$('disablePin').onclick = async () => {
+    try {
+        if (auth && !(await verifyPIN($('oldPin').value))) throw Error('Введите текущий PIN.');
+        localStorage.removeItem(AUTH); localStorage.removeItem('portfolio_auth'); localStorage.removeItem('portfolio_pin');
+        auth = null; $('pinSetup').reset(); $('pinInfo').textContent = 'Блокировка отключена.';
+    } catch (error) { $('pinInfo').textContent = error.message; }
+};
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) hiddenAt = Date.now();
+    else if (auth && hiddenAt && Date.now() - hiddenAt >= 60000) lock();
 });
 
-init();
+window.addEventListener('storage', event => {
+    if (event.key === KEY) { blocked = true; notice('Портфель изменён в другой вкладке. Перезагрузите страницу перед редактированием.'); }
+    if (event.key === AUTH) { loadAuth(); if (auth) lock(); }
+});
+
+// ==================== КНОПКИ И ЗАПУСК ====================
+for (const id of ['acc', 'scanAcc']) options($(id));
+options($('accountFilter'), true);
+for (const id of ['ownerFilter', 'accountFilter', 'search']) $(id).addEventListener('input', render);
+for (const button of document.querySelectorAll('[data-close]')) button.onclick = () => close(button.dataset.close);
+
+$('kind').onchange = fields;
+$('addBtn').onclick = () => openEdit();
+$('cashBtn').onclick = () => openEdit(null, 'cash');
+$('goldBtn').onclick = () => openEdit(null, 'gold');
+$('settingsBtn').onclick = () => open('settingsDialog');
+$('pricesBtn').onclick = updatePrices;
+$('backupBtn').onclick = backup;
+$('restoreBtn').onclick = () => $('restoreFile').click();
+$('scanBtn').onclick = () => open('scanDialog');
+$('hideBtn').onclick = () => { hiddenMoney = !hiddenMoney; render(); };
+$('lockBtn').onclick = () => { if (auth) lock(); else $('pinInfo').textContent = 'Сначала установите PIN.'; };
+
+$('undoBtn').onclick = () => {
+    if (!undo) return;
+    const old = clone(undo);
+    if (commit(old.positions)) { notice('Изменение отменено.'); undo = null; $('undoBtn').hidden = true; }
+};
+
+$('previousBtn').onclick = () => {
+    try {
+        const raw = localStorage.getItem(PREV);
+        if (!raw) throw Error('Предыдущей копии нет.');
+        const previous = decode(raw);
+        if (confirm('Вернуть предыдущую версию: ' + previous.positions.length + ' записей?') && commit(previous.positions, { recovery: true })) notice('Предыдущая версия восстановлена.');
+    } catch (error) { notice(error.message); }
+};
+
+$('rawBtn').onclick = () => {
+    try { download(JSON.stringify({ current: localStorage.getItem(KEY), previous: localStorage.getItem(PREV), legacy: localStorage.getItem('myPortfolio_v3') }, null, 2), 'portfolio-storage-rescue.json'); } 
+    catch (error) { notice(error.message); }
+};
+
+$('resetBtn').onclick = () => {
+    if (confirm('Очистить текущий портфель? Сначала скачайте копию.') && commit([])) {
+        notice('Портфель очищен. Предыдущая версия доступна в настройках.'); close('settingsDialog');
+    }
+};
+
+load(); loadAuth(); render();
+if (auth) lock();
 </script>
 </body>
 </html>
